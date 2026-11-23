@@ -12,18 +12,20 @@ import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const root = resolve(import.meta.dirname, '..')
-const { installFakeSdk } = await import(pathToFileURL(join(root, 'test/helpers/host.mjs')).href)
-installFakeSdk()
-const mod = await import(pathToFileURL(join(root, 'dist/index.mjs')).href)
-const api = await mod.default.activate({ log: { debug() {}, warn() {} } })
-const tools = Object.fromEntries(api.tools.map((t) => [t.name, t]))
+const { loadBundle } = await import(pathToFileURL(join(root, 'test/helpers/dsh.mjs')).href)
+const { tools, api } = await loadBundle(pathToFileURL(join(root, 'dist/index.mjs')).href)
 
 const CHROME_CANDIDATES = [
   process.argv[2],
+  process.env.DSH_CANVAS_BROWSER,
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
   'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
   'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
+  '/usr/bin/google-chrome',
+  '/usr/bin/google-chrome-stable',
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser',
 ].filter(Boolean)
 
 const puppeteer = (await import('puppeteer-core')).default
@@ -137,5 +139,6 @@ try {
   process.exit(ok ? 0 : 1)
 } finally {
   if (browser) await browser.close().catch(() => {})
+  await api.dispose()
   rmSync(cwd, { recursive: true, force: true })
 }

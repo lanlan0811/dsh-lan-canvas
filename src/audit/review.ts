@@ -279,7 +279,9 @@ async function captureScroll(page: Page, frame: Frame, width: number, viewportHe
       return Math.round(w.scrollY)
     }, y === 0 ? 0 : Math.max(0, y - 64))
     let image: ReturnType<typeof decodePng> | undefined
-    for (let attempt = 0; attempt < 8; attempt++) {
+    // 单块截图最多重试 14 次：CI/低配机上一个不透明 iframe 的合成长尾可达数秒。
+    // 这里只放宽等待，不放松判定——仍要求与已抓取的重叠像素逐点一致。
+    for (let attempt = 0; attempt < 14; attempt++) {
       const candidate = decodePng(Buffer.from(await page.screenshot({ type: 'png', fromSurface: true })))
       if (candidate.width !== width || candidate.height !== viewportHeight) throw new Error('审阅截图视口不一致。')
       // DOM scrollY can advance before Chromium composites an opaque iframe.
@@ -305,7 +307,7 @@ async function captureScroll(page: Page, frame: Frame, width: number, viewportHe
         const w = globalThis as any
         await new Promise((r) => w.requestAnimationFrame(() => w.requestAnimationFrame(() => w.requestAnimationFrame(r))))
       })
-      await new Promise((r) => setTimeout(r, 50 * (attempt + 1)))
+      await new Promise((r) => setTimeout(r, Math.min(600, 100 * (attempt + 1))))
     }
     if (!image) throw new Error('页面滚动后的像素重叠不一致，可能为未完成的合成、固定元素或动画；已停止，不能把重复拼接图当完整截图。')
     const sourceY = Math.max(0, y - actualY)

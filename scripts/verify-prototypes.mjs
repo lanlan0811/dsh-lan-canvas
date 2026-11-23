@@ -44,7 +44,7 @@ const expectedFiles = files(join(expected, 'design'))
 assert.deepEqual(files(join(root, 'dist', 'design')).map(file => relative(join(root, 'dist'), file)).sort(), expectedFiles.map(file => relative(expected, file)).sort(), 'dist/design file set is stale; run npm run build')
 for (const file of expectedFiles) assert.ok(readFileSync(file).equals(readFileSync(join(root, 'dist', relative(expected, file)))), relative(expected, file) + ' differs from source; run npm run build')
 const bundled = await build({
-  absWorkingDir: root, entryPoints: ['src/index.ts'], outfile: 'dist/index.mjs', bundle: true, platform: 'node', format: 'esm', target: 'node24',
+  absWorkingDir: root, entryPoints: ['src/dsh/index.ts'], outfile: 'dist/index.mjs', bundle: true, platform: 'node', format: 'esm', target: 'node24',
   banner: { js: "import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);" },
   sourcemap: false, legalComments: 'none', logLevel: 'silent', write: false,
 })

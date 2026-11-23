@@ -67772,7 +67772,7 @@ async function captureScroll(page, frame, width, viewportHeight, height) {
       return Math.round(w2.scrollY);
     }, y === 0 ? 0 : Math.max(0, y - 64));
     let image;
-    for (let attempt = 0; attempt < 8; attempt++) {
+    for (let attempt = 0; attempt < 14; attempt++) {
       const candidate = decodePng(Buffer.from(await page.screenshot({ type: "png", fromSurface: true })));
       if (candidate.width !== width || candidate.height !== viewportHeight) throw new Error("\u5BA1\u9605\u622A\u56FE\u89C6\u53E3\u4E0D\u4E00\u81F4\u3002");
       const overlap = Math.min(y - actualY, viewportHeight);
@@ -67798,7 +67798,7 @@ async function captureScroll(page, frame, width, viewportHeight, height) {
         const w2 = globalThis;
         await new Promise((r) => w2.requestAnimationFrame(() => w2.requestAnimationFrame(() => w2.requestAnimationFrame(r))));
       });
-      await new Promise((r) => setTimeout(r, 50 * (attempt + 1)));
+      await new Promise((r) => setTimeout(r, Math.min(600, 100 * (attempt + 1))));
     }
     if (!image) throw new Error("\u9875\u9762\u6EDA\u52A8\u540E\u7684\u50CF\u7D20\u91CD\u53E0\u4E0D\u4E00\u81F4\uFF0C\u53EF\u80FD\u4E3A\u672A\u5B8C\u6210\u7684\u5408\u6210\u3001\u56FA\u5B9A\u5143\u7D20\u6216\u52A8\u753B\uFF1B\u5DF2\u505C\u6B62\uFF0C\u4E0D\u80FD\u628A\u91CD\u590D\u62FC\u63A5\u56FE\u5F53\u5B8C\u6574\u622A\u56FE\u3002");
     const sourceY = Math.max(0, y - actualY);

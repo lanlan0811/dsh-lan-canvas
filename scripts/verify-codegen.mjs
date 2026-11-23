@@ -14,7 +14,7 @@ import { execFileSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { loadPlugin } from '../test/helpers/host.mjs'
+import { loadBundle } from '../test/helpers/dsh.mjs'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 
@@ -92,7 +92,7 @@ function splitFiles(content) {
   return files
 }
 
-const { api } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
+const { api } = await loadBundle(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
 const styleTool = api.tools.find((t) => t.name === 'dsh_canvas_style')
 const cwd = mkdtempSync(join(tmpdir(), 'tsc-verify-codegen-'))
 await styleTool.execute({ args: { action: 'set', style_id: 'apple' }, cwd, sessionId: 'verify-codegen' })
