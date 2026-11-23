@@ -36,12 +36,31 @@ CI 的 `npm run check:pack` 会验证）。**请安装 `dsh-lan-canvas`，
 
 ## 从旧包名迁移
 
-1. **Plugins** 页面找到旧的 `dsh-canvas`，移除（或 `plugin_manager` `remove_bundle`）；
-2. 确认 profile 的 `node_modules/dsh-canvas` 已删除（目录链接指向的仓库目录不应被删）；
-3. 重新安装 `dsh-lan-canvas`（npm / 仓库 URL / tarball）；
-4. 重启 DSH（bundle 行名从 `dsh-canvas` 变为 scoped 包名，Host 需要重新加载）；
-5. 新建会话，确认 9 个 `dsh_canvas_*` 工具与 `dsh-canvas` 技能出现；
-6. 打开左侧栏「画布」，若显示授权错误，刷新画布或重启 DSH。
+1.1.0 起包名是 `dsh-lan-canvas`；旧 profile 若仍以 `dsh-canvas` 为依赖 key，bundle 行
+无法解析，会出现**左侧栏「画布」消失、`/design` 不出现**（Host 条目 absent）。用仓库里的
+迁移脚本（或重新安装）修复：
+
+```powershell
+cd "D:\Trae项目\dsh-canvas"
+npm run migrate-profile -- --profile "C:\Users\Lenovo\.dsh\profiles\desktop"
+```
+
+脚本会：
+
+- 把 `package.json` 的 `dsh-canvas` 依赖改为 `dsh-lan-canvas`（link 到仓库）；
+- 把 `dsh.profile.bundles` 里的旧名换成新名；
+- 备份原 `package.json`（`*.bak-migrate-*`），移除旧 `node_modules/dsh-canvas` 链接；
+- 执行 `pnpm install`（可加 `--no-install` 跳过）。
+
+然后**重启 DSH**。工作区 `.dsh-canvas/` 数据不受影响。
+
+手动流程：
+
+1. **Plugins** 页面移除旧的 `dsh-canvas`（或 `plugin_manager` `remove_bundle`）；
+2. 重新安装 `dsh-lan-canvas`（npm / 仓库 URL / tarball）；
+3. 重启 DSH（bundle 行名变了，必须重新加载）；
+4. 新建会话，确认 9 个 `dsh_canvas_*` 工具与 `dsh-canvas` 技能出现；
+5. 打开左侧栏「画布」，若显示授权错误，刷新画布或重启 DSH。
 
 ## 安装后自检
 

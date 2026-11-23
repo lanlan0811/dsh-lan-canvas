@@ -75,6 +75,19 @@ failed to read overlay ... node_modules\dsh-canvas\cordis.patch.yml: ENOENT
 
 装错了先移除，再按上面的 npm 名 / 仓库 URL / tarball 重装；详细步骤见 [docs/INSTALL.md](docs/INSTALL.md)。
 
+### 从旧包名 `dsh-canvas` 升级
+
+1.1.0 把包名改为 `dsh-lan-canvas` 后，bundle 行名也随之变化。已有安装如果仍以
+`dsh-canvas` 为依赖 key，DSH 会解析不到新行，表现为**左侧栏「画布」消失、`/design`
+不出现**。升级时执行一次迁移，然后重启 DSH：
+
+```bash
+npm run migrate-profile -- --profile "C:\Users\<你>\.dsh\profiles\desktop"
+```
+
+或重新安装 `dsh-lan-canvas` 并移除旧的 `dsh-canvas`。迁移只改 profile 的依赖 key /
+bundle 列表，不动工作区 `.dsh-canvas/` 数据。详见 [docs/INSTALL.md](docs/INSTALL.md)。
+
 安装后在 **Plugins** 页面确认：
 
 - 插件标题「画布」/「Canvas」与图标显示正常；

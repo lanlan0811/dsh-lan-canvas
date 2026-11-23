@@ -39,6 +39,7 @@ const REQUIRED = [
   'README.md',
   'LICENSE',
   'THIRD-PARTY-NOTICES.md',
+  'scripts/migrate-profile.mjs',
 ]
 
 let packed
