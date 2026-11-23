@@ -1506,7 +1506,7 @@ export const tools: TpiTool[] = [
   {
     definition: {
       name: 'dsh_canvas_open',
-      description: '【第一步】启动/复用本工作区的本地画布服务并返回画布 URL；必须先把该 URL 单独一行发给用户，再开始设计',
+      description: '【第一步】启动/复用本工作区的本地画布服务并返回画布 URL；画布已内嵌在 DSH 主面板，先提示用户点左侧栏「画布」，只有用户要独立窗口时才把 URL 单独一行发给他',
       input_schema: {
         type: 'object',
         properties: {
