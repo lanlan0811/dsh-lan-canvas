@@ -30,6 +30,9 @@ export function CanvasPanel({ ctx, t, useSessions, useSessionStatus }: Props): R
   const [slow, setSlow] = React.useState(false)
   const [loaded, setLoaded] = React.useState(false)
   const [exiting, setExiting] = React.useState(false)
+  const frameRef = React.useRef<HTMLIFrameElement | null>(null)
+  const lastRelaunch = React.useRef(0)
+  const relaunches = React.useRef(0)
   const src = canvasLaunchUrl(cwd, revision)
 
   React.useEffect(() => {
@@ -38,6 +41,25 @@ export function CanvasPanel({ ctx, t, useSessions, useSessionStatus }: Props): R
     const timer = window.setTimeout(() => { setSlow(true) }, SLOW_MS)
     return () => { window.clearTimeout(timer) }
   }, [src, loaded])
+
+  // iframe 的旧 token 失效（例如插件重载后服务重启）时，页面会请求父页面重新 launch。
+  // 只接受来自本 iframe 的消息，并限速/限次，避免死循环。
+  React.useEffect(() => {
+    const onMessage = (event: MessageEvent): void => {
+      if (event.source !== frameRef.current?.contentWindow) return
+      const data = event.data as { type?: unknown } | null
+      if (data?.type !== 'dsh-canvas:relaunch') return
+      const now = Date.now()
+      if (now - lastRelaunch.current < 3000 || relaunches.current >= 3) return
+      lastRelaunch.current = now
+      relaunches.current += 1
+      setLoaded(false)
+      setSlow(false)
+      setRevision((value) => value + 1)
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [])
 
   const refresh = (): void => {
     setLoaded(false)
@@ -106,6 +128,7 @@ export function CanvasPanel({ ctx, t, useSessions, useSessionStatus }: Props): R
       React.createElement('div', { className: 'dshc-body' },
         React.createElement('iframe', {
           key: src,
+          ref: frameRef,
           className: 'dshc-frame',
           title: t('panel.title'),
           src,

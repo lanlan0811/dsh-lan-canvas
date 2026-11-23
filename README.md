@@ -62,7 +62,9 @@
 ## 数据与安全
 
 - 只读写工作区的 `.dsh-canvas/`；不读旧版 Tianshu 数据目录。
-- 画布服务只绑定 `127.0.0.1`；URL 凭证只存在于浏览器 fragment 与 HttpOnly cookie。
+- 画布服务只绑定 `127.0.0.1`；画布 URL 的凭证只经 fragment 交付，页面用
+  `Authorization: Bearer` 访问 API（同源时也写 HttpOnly cookie），页面 iframe 的
+  GET `/page/*` 用 `secret` 查询参数；不依赖第三方 cookie。
 - `/dsh-canvas/*` 路由经 `ctx.connection` 的 Host/Origin 检查与浏览器认证，全部 owner-only。
 - 文件读写经 `src/paths.ts` 边界校验（越界、符号链接、目录联接一律拒绝）。
 - 工具错误经 `reportError` 脱敏；运行期不依赖任何 `@deepseek-ai/*` 包。

@@ -224,7 +224,10 @@ function routeRequest(req: http.IncomingMessage, res: http.ServerResponse): void
   const scope = url.pathname.match(/^\/w\/([0-9a-f]{32})(\/.*)$/)
   const path = scope?.[2] ?? url.pathname
   const queryWorkspace = url.searchParams.get('ws')
-  if (scope && queryWorkspace && state?.tokens.get(queryWorkspace)?.scope !== scope[1]) {
+  // 文档外壳不校验 token：过期的 iframe 只要还能加载壳，页面就能发现 401/404
+  // 并通过 postMessage 请父页面重新 launch。壳本身不含任何工作区数据。
+  const isDocument = path === '/'
+  if (!isDocument && scope && queryWorkspace && state?.tokens.get(queryWorkspace)?.scope !== scope[1]) {
     return send(res, 404, 'text/plain; charset=utf-8', 'unknown workspace')
   }
 
@@ -273,7 +276,7 @@ function routeRequest(req: http.IncomingMessage, res: http.ServerResponse): void
   }
 
   if (req.method === 'GET' && path.startsWith('/page/')) {
-    const cwd = resolveCwd(url.searchParams.get('ws'), req)
+    const cwd = resolveCwd(url.searchParams.get('ws'), req, { allowQuerySecret: true })
     if (!cwd) return send(res, 404, 'text/plain; charset=utf-8', 'unknown workspace')
     let id: string
     try {
@@ -623,12 +626,22 @@ function validSecret(token: string, secret: string): boolean {
   return timingSafeEqual(Buffer.from(secret, 'hex'), Buffer.from(expected, 'hex'))
 }
 
-function resolveCwd(token: string | null, req: http.IncomingMessage): string | null {
+function resolveCwd(token: string | null, req: http.IncomingMessage, options: { allowQuerySecret?: boolean } = {}): string | null {
   if (!token || !state) return null
   const cookieName = `canvas_${token}=`
   const cookie = (req.headers.cookie ?? '').split(';').map((part) => part.trim()).find((part) => part.startsWith(cookieName))?.slice(cookieName.length) ?? ''
   const bearer = req.headers.authorization?.match(/^Bearer ([0-9a-f]{64})$/)?.[1] ?? ''
-  if (!validSecret(token, bearer || cookie)) return null
+  let secret = bearer || cookie
+  // 页面 iframe 是文档导航，无法带 Authorization 头；跨站 iframe 里 cookie 又可能被
+  // 浏览器丢弃，因此只对被嵌入的 GET /page/* 允许 fragment 凭证随查询串传入。
+  if (!secret && options.allowQuerySecret === true && req.method === 'GET') {
+    try {
+      secret = new URL(req.url ?? '/', 'http://127.0.0.1').searchParams.get('secret') ?? ''
+    } catch {
+      secret = ''
+    }
+  }
+  if (!validSecret(token, secret)) return null
   return state.tokens.get(token)?.cwd ?? null
 }
 
@@ -654,6 +667,9 @@ function sendUntrustedHtml(res: http.ServerResponse, html: string): void {
     'Content-Type': 'text/html; charset=utf-8',
     'X-Content-Type-Options': 'nosniff',
     'Cache-Control': 'no-store',
+    // 页面 URL 可能带 fragment 凭证的查询副本（仅供 GET /page/* 鉴权）；
+    // 禁止任何 Referer 外发。
+    'Referrer-Policy': 'no-referrer',
     'Content-Security-Policy':
       "default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; " +
       "script-src 'unsafe-inline' 'unsafe-eval'; font-src data:; connect-src 'none'; form-action 'none'",

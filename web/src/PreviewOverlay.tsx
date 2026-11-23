@@ -22,6 +22,7 @@ import {
   TabletIcon,
 } from './icons'
 import { resolveNavTarget } from './navTarget'
+import { pageUrl } from './api'
 import {
   PREVIEW_DEVICES,
   PREVIEW_DEVICE_ORDER,
@@ -390,9 +391,10 @@ export function PreviewOverlay({
                 ref={iframeRef}
                 className="preview-device__iframe"
                 title={page.data.title}
-                src={`${location.pathname}page/${encodeURIComponent(page.id)}?ws=${encodeURIComponent(ws)}${
-                  page.data.rev ? `&v=${page.data.rev}` : ''
-                }&preview=1`}
+                src={pageUrl(ws, page.id, {
+                  ...(page.data.rev ? { v: String(page.data.rev) } : {}),
+                  preview: '1',
+                })}
                 sandbox="allow-scripts"
                 onLoad={() => iframeRef.current?.focus()}
               />

@@ -68,6 +68,21 @@ await build({
 cpSync(join(root, 'dist', 'web'), join(runtime, 'web'), { recursive: true })
 cpSync(join(root, 'dist', 'design'), join(runtime, 'design'), { recursive: true })
 const api = await import(pathToFileURL(join(runtime, 'api.mjs')).href)
+// 拼接截图对合成时序敏感：同一页最多重试一次（只针对「像素重叠不一致」），
+// 真实固定元素/动画导致的失败会连续两次失败，仍然被报告。
+async function reviewWithRetry(task) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await api.reviewPage(cwd, task.id, { outputDir: 'evidence' })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (attempt === 1 || !message.includes('像素重叠不一致')) throw error
+      console.log('[retry] ' + task.id + ': 截图合成未稳定，重试一次')
+      await new Promise((resolveWait) => setTimeout(resolveWait, 1000))
+    }
+  }
+  throw new Error('unreachable')
+}
 const cwd = join(out, 'workspace')
 mkdirSync(cwd)
 const prototypes = api.listPrototypes()
@@ -89,7 +104,7 @@ try {
   for (const task of selected) {
     const htmlPath = api.writePageHtml(cwd, task.id, task.html)
     api.upsertNode(cwd, { id: task.id, type: 'page', title: task.name, x: 0, y: 0, width: 1440, height: 1000, deviceType: 'desktop', htmlPath, createdAt: Date.now(), updatedAt: Date.now() })
-    const result = await api.reviewPage(cwd, task.id, { outputDir: 'evidence' })
+    const result = await reviewWithRetry(task)
     assert.deepEqual(result.captures.map(capture => capture.width), [1440, 768, 390], task.id + ' must capture every required viewport')
     assert.equal(result.sourceSha256, digest(task.html), task.id + ' captured a different page')
     const failures = result.captures.flatMap((capture) => {

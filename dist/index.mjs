@@ -66338,7 +66338,8 @@ function routeRequest(req, res) {
   const scope = url.pathname.match(/^\/w\/([0-9a-f]{32})(\/.*)$/);
   const path14 = scope?.[2] ?? url.pathname;
   const queryWorkspace = url.searchParams.get("ws");
-  if (scope && queryWorkspace && state?.tokens.get(queryWorkspace)?.scope !== scope[1]) {
+  const isDocument = path14 === "/";
+  if (!isDocument && scope && queryWorkspace && state?.tokens.get(queryWorkspace)?.scope !== scope[1]) {
     return send(res, 404, "text/plain; charset=utf-8", "unknown workspace");
   }
   if (req.headers.origin && req.headers.origin !== `http://${host}`) {
@@ -66377,7 +66378,7 @@ function routeRequest(req, res) {
     return handleSse(res, tokenFor(cwd));
   }
   if (req.method === "GET" && path14.startsWith("/page/")) {
-    const cwd = resolveCwd(url.searchParams.get("ws"), req);
+    const cwd = resolveCwd(url.searchParams.get("ws"), req, { allowQuerySecret: true });
     if (!cwd) return send(res, 404, "text/plain; charset=utf-8", "unknown workspace");
     let id;
     try {
@@ -66678,12 +66679,20 @@ function validSecret(token, secret) {
   if (!expected || !/^[0-9a-f]{64}$/.test(secret)) return false;
   return timingSafeEqual(Buffer.from(secret, "hex"), Buffer.from(expected, "hex"));
 }
-function resolveCwd(token, req) {
+function resolveCwd(token, req, options = {}) {
   if (!token || !state) return null;
   const cookieName = `canvas_${token}=`;
   const cookie = (req.headers.cookie ?? "").split(";").map((part) => part.trim()).find((part) => part.startsWith(cookieName))?.slice(cookieName.length) ?? "";
   const bearer = req.headers.authorization?.match(/^Bearer ([0-9a-f]{64})$/)?.[1] ?? "";
-  if (!validSecret(token, bearer || cookie)) return null;
+  let secret = bearer || cookie;
+  if (!secret && options.allowQuerySecret === true && req.method === "GET") {
+    try {
+      secret = new URL(req.url ?? "/", "http://127.0.0.1").searchParams.get("secret") ?? "";
+    } catch {
+      secret = "";
+    }
+  }
+  if (!validSecret(token, secret)) return null;
   return state.tokens.get(token)?.cwd ?? null;
 }
 function isLocalHost(host) {
@@ -66705,6 +66714,9 @@ function sendUntrustedHtml(res, html) {
     "Content-Type": "text/html; charset=utf-8",
     "X-Content-Type-Options": "nosniff",
     "Cache-Control": "no-store",
+    // 页面 URL 可能带 fragment 凭证的查询副本（仅供 GET /page/* 鉴权）；
+    // 禁止任何 Referer 外发。
+    "Referrer-Policy": "no-referrer",
     "Content-Security-Policy": "default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline' 'unsafe-eval'; font-src data:; connect-src 'none'; form-action 'none'"
   });
   res.end(html);
@@ -67772,7 +67784,7 @@ async function captureScroll(page, frame, width, viewportHeight, height) {
       return Math.round(w2.scrollY);
     }, y === 0 ? 0 : Math.max(0, y - 64));
     let image;
-    for (let attempt = 0; attempt < 14; attempt++) {
+    for (let attempt = 0; attempt < 24; attempt++) {
       const candidate = decodePng(Buffer.from(await page.screenshot({ type: "png", fromSurface: true })));
       if (candidate.width !== width || candidate.height !== viewportHeight) throw new Error("\u5BA1\u9605\u622A\u56FE\u89C6\u53E3\u4E0D\u4E00\u81F4\u3002");
       const overlap = Math.min(y - actualY, viewportHeight);
@@ -67798,7 +67810,7 @@ async function captureScroll(page, frame, width, viewportHeight, height) {
         const w2 = globalThis;
         await new Promise((r) => w2.requestAnimationFrame(() => w2.requestAnimationFrame(() => w2.requestAnimationFrame(r))));
       });
-      await new Promise((r) => setTimeout(r, Math.min(600, 100 * (attempt + 1))));
+      await new Promise((r) => setTimeout(r, Math.min(1e3, 200 * (attempt + 1))));
     }
     if (!image) throw new Error("\u9875\u9762\u6EDA\u52A8\u540E\u7684\u50CF\u7D20\u91CD\u53E0\u4E0D\u4E00\u81F4\uFF0C\u53EF\u80FD\u4E3A\u672A\u5B8C\u6210\u7684\u5408\u6210\u3001\u56FA\u5B9A\u5143\u7D20\u6216\u52A8\u753B\uFF1B\u5DF2\u505C\u6B62\uFF0C\u4E0D\u80FD\u628A\u91CD\u590D\u62FC\u63A5\u56FE\u5F53\u5B8C\u6574\u622A\u56FE\u3002");
     const sourceY = Math.max(0, y - actualY);

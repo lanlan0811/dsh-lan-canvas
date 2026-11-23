@@ -30,7 +30,7 @@ import { CanvasActionsProvider, type CanvasActions } from './actions'
 import { postToPage, useProbeBridge } from './ProbeBridge'
 import {
   ApiRequestError,
-  exportFileUrl,
+  downloadExport,
   fetchDesignSystems,
   fetchProject,
   fetchSelection,
@@ -137,6 +137,7 @@ function Canvas() {
   commentsRef.current = comments
   // 高度只在页面加载时上报一次，项目刷新重建节点时不能丢。
   const contentHeights = useRef(new Map<string, number>())
+  const relaunchReported = useRef(false)
 
   const { setViewport, getViewport, fitView } = useReactFlow()
 
@@ -162,12 +163,24 @@ function Canvas() {
       setComments(list)
       setReady(true)
       setError(project.issue ?? null)
+      relaunchReported.current = false
       // 把批注推给已加载的 iframe（图钉在 iframe 内绘制）。
       for (const n of project.nodes) syncCommentsToPage(n.id, list)
     } catch (err) {
-      setError((err as Error).message)
+      const message = (err as Error).message
+      setError(message)
       setInitialViewport((current) => (current === undefined ? null : current))
       setReady(true)
+      // 凭证过期（服务重启后旧 token 失效）时请父页面重新走 launch 换新凭证。
+      // 只在 iframe 内、且每次加载最多上报一次，避免重启风暴。
+      if (message === 'project 404' && !relaunchReported.current && window.parent !== window) {
+        relaunchReported.current = true
+        try {
+          window.parent.postMessage({ type: 'dsh-canvas:relaunch' }, '*')
+        } catch {
+          /* 父页面不可达时保持错误提示 */
+        }
+      }
     }
   }, [setNodes, setEdges])
 
@@ -365,12 +378,7 @@ function Canvas() {
         return
       }
       for (const f of result.files) {
-        const a = document.createElement('a')
-        a.href = exportFileUrl(ws, f.name)
-        a.download = f.name
-        document.body.appendChild(a)
-        a.click()
-        a.remove()
+        await downloadExport(ws, f.name)
       }
       if (result.pngError) setMutationError(`PNG 导出未完成：${result.pngError}`)
     } catch (err) {

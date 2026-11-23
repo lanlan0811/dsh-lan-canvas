@@ -1,6 +1,10 @@
 /**
  * 与本地画布服务通信：拉项目、提交视口、选中、节点/边编排、编辑回写、订阅 SSE。
+ *
+ * 认证：所有请求都带 `Authorization: Bearer <fragment secret>`，不依赖 cookie——
+ * 画布被 DSH 主面板以 iframe 承载时，第三方上下文可能丢弃 SameSite cookie。
  */
+import { authHeaders, canvasSecret } from './auth'
 export interface ApiPageNode {
   id: string
   type: 'page'
@@ -128,7 +132,7 @@ async function mutate(path: string, data: Record<string, unknown>): Promise<Resp
   try {
     res = await fetch(`${API_ROOT}/api/${path}`, {
       method: 'POST',
-      headers: MUTATION_HEADERS,
+      headers: authHeaders(MUTATION_HEADERS),
       body: JSON.stringify(data),
     })
   } catch {
@@ -148,14 +152,14 @@ async function mutate(path: string, data: Record<string, unknown>): Promise<Resp
 }
 
 export async function fetchProject(ws: string): Promise<ApiProject> {
-  const res = await fetch(`${API_ROOT}/api/project?ws=${encodeURIComponent(ws)}`)
+  const res = await fetch(`${API_ROOT}/api/project?ws=${encodeURIComponent(ws)}`, { headers: authHeaders() })
   if (!res.ok) throw new Error(`project ${res.status}`)
   return (await res.json()) as ApiProject
 }
 
 export async function fetchDesignSystems(ws: string): Promise<ApiDesignCatalog | null> {
   try {
-    const res = await fetch(`${API_ROOT}/api/design-systems?ws=${encodeURIComponent(ws)}`)
+    const res = await fetch(`${API_ROOT}/api/design-systems?ws=${encodeURIComponent(ws)}`, { headers: authHeaders() })
     if (!res.ok) return null
     return (await res.json()) as ApiDesignCatalog
   } catch {
@@ -164,7 +168,7 @@ export async function fetchDesignSystems(ws: string): Promise<ApiDesignCatalog |
 }
 
 export async function fetchSelection(ws: string): Promise<ApiSelection | null> {
-  const res = await fetch(`${API_ROOT}/api/selection?ws=${encodeURIComponent(ws)}`)
+  const res = await fetch(`${API_ROOT}/api/selection?ws=${encodeURIComponent(ws)}`, { headers: authHeaders() })
   if (!res.ok) return null
   const data = (await res.json()) as { selection: ApiSelection | null }
   return data.selection
@@ -252,15 +256,91 @@ export function exportFileUrl(ws: string, name: string): string {
   return `${API_ROOT}/api/export-file?ws=${encodeURIComponent(ws)}&name=${encodeURIComponent(name)}`
 }
 
+/**
+ * 用 Bearer 认证下载导出文件。
+ * 为什么不是直接 `<a href>`：下载请求无法带 Authorization 头，第三方 iframe 里
+ * cookie 可能被丢弃；先 fetch 成 blob 再触发下载即可。
+ */
+export async function downloadExport(ws: string, name: string): Promise<void> {
+  const res = await fetch(exportFileUrl(ws, name), { headers: authHeaders() })
+  await checkResponse(res)
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = name
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 10_000)
+}
+
+/** 页面 iframe 地址：调用方无需再自己拼 ws/secret/版本参数。 */
+export function pageUrl(ws: string, pageId: string, extra: Record<string, string> = {}): string {
+  const params = new URLSearchParams({ ws })
+  for (const [key, value] of Object.entries(extra)) if (value !== '') params.set(key, value)
+  const secret = canvasSecret()
+  if (secret) params.set('secret', secret)
+  return `${location.pathname}page/${encodeURIComponent(pageId)}?${params.toString()}`
+}
+
 export interface EventHandlers {
   onProject?: () => void
   onSelection?: () => void
 }
 
-/** 单一 EventSource，同时订阅 project / selection 两类事件。 */
+/**
+ * 订阅 project / selection 事件。
+ *
+ * 用 fetch 流而不是 EventSource：EventSource 无法设置 Authorization 头，
+ * 依赖 cookie 会在第三方 iframe 里 404。断线按 0.5s–3s 退避重连，清理即中止。
+ */
 export function subscribeEvents(ws: string, handlers: EventHandlers): () => void {
-  const es = new EventSource(`${API_ROOT}/api/events?ws=${encodeURIComponent(ws)}`)
-  if (handlers.onProject) es.addEventListener('project', handlers.onProject)
-  if (handlers.onSelection) es.addEventListener('selection', handlers.onSelection)
-  return () => es.close()
+  const controller = new AbortController()
+  let closed = false
+  let attempt = 0
+
+  const dispatch = (block: string): void => {
+    const event = /^event: (\S+)$/m.exec(block)?.[1]
+    if (event === 'project') handlers.onProject?.()
+    else if (event === 'selection') handlers.onSelection?.()
+  }
+
+  const run = async (): Promise<void> => {
+    while (!closed) {
+      try {
+        const res = await fetch(`${API_ROOT}/api/events?ws=${encodeURIComponent(ws)}`, {
+          headers: authHeaders(),
+          signal: controller.signal,
+        })
+        if (!res.ok || !res.body) throw new Error(`events ${res.status}`)
+        attempt = 0
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+        for (;;) {
+          const { value, done } = await reader.read()
+          if (done || closed) break
+          buffer += decoder.decode(value, { stream: true })
+          let boundary = buffer.indexOf('\n\n')
+          while (boundary >= 0) {
+            dispatch(buffer.slice(0, boundary))
+            buffer = buffer.slice(boundary + 2)
+            boundary = buffer.indexOf('\n\n')
+          }
+        }
+      } catch {
+        /* 断线/中止都走下面的退避重连 */
+      }
+      if (closed) return
+      attempt = Math.min(attempt + 1, 6)
+      await new Promise((resolve) => setTimeout(resolve, 500 * attempt))
+    }
+  }
+
+  void run()
+  return () => {
+    closed = true
+    controller.abort()
+  }
 }

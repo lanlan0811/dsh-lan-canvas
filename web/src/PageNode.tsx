@@ -12,6 +12,7 @@
 import { memo, useEffect, useRef } from 'react'
 import { Handle, Position, useStore, type NodeProps, type Node } from '@xyflow/react'
 import { DeviceIcon } from './icons'
+import { pageUrl } from './api'
 import { registerIframe, unregisterIframe } from './ProbeBridge'
 import { useCanvasActions } from './actions'
 import { NodeToolbar } from './NodeToolbar'
@@ -88,7 +89,7 @@ export const PageNode = memo(function PageNode({ id, data, selected }: NodeProps
           ref={iframeRef}
           className="page-node__iframe"
           title={data.title}
-          src={`${location.pathname}page/${encodeURIComponent(id)}?ws=${encodeURIComponent(data.ws)}${data.rev ? `&v=${data.rev}` : ''}`}
+          src={pageUrl(data.ws, id, data.rev ? { v: String(data.rev) } : {})}
           sandbox="allow-scripts"
           loading="lazy"
           onLoad={() => registerIframe(id, iframeRef.current?.contentWindow ?? null)}
