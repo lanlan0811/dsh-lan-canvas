@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Canvas",
+    "description": "Infinite-canvas design workbench: place front-end prototypes on a pannable canvas, lock a project design style, and follow it in the DSH main panel; includes /design design mode, element comments, design audits, PNG/ZIP export, and production code generation.",
+    "detail": "docs/DETAIL.md"
+  }
+}

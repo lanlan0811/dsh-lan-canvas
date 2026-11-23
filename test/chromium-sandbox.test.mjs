@@ -16,7 +16,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test from 'node:test'
-import { installFakeSdk, loadPlugin, rawFetch } from './helpers/host.mjs'
+import { installFakeSdk, loadBundle, rawFetch } from './helpers/dsh.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 
@@ -25,7 +25,7 @@ test('启动参数默认不含 --no-sandbox（静态）', () => {
   const launchArgsBlock = source.slice(source.indexOf('const LAUNCH_ARGS'), source.indexOf(']', source.indexOf('const LAUNCH_ARGS')))
   assert.ok(!/--no-sandbox/.test(launchArgsBlock), 'LAUNCH_ARGS 不得包含 --no-sandbox')
   // 只允许在显式放开的分支里出现。
-  assert.match(source, /TIANSHU_CANVAS_ALLOW_NO_SANDBOX/, '应提供显式放开开关')
+  assert.match(source, /DSH_CANVAS_ALLOW_NO_SANDBOX/, '应提供显式放开开关')
 })
 
 test('沙箱不可用时明确报错而非静默降级（源码契约）', () => {
@@ -39,12 +39,12 @@ test('原包截图与视觉审计启动的 Chromium 保留沙箱', { skip: proce
   const mod = await import(pathToFileURL(join(root, 'dist', 'index.mjs')).href + '?sandbox=' + Date.now())
   const exe = mod.resolveBrowser()
   if (!exe) {
-    if (process.env.TIANSHU_CANVAS_REQUIRE_BROWSER === '1') assert.fail('正式验收必须提供可用浏览器')
+    if (process.env.DSH_CANVAS_REQUIRE_BROWSER === '1') assert.fail('正式验收必须提供可用浏览器')
     return t.skip('未找到浏览器：动态沙箱检查未完成')
   }
-  assert.notEqual(process.env.TIANSHU_CANVAS_ALLOW_NO_SANDBOX, '1', '验收必须保留沙箱')
+  assert.notEqual(process.env.DSH_CANVAS_ALLOW_NO_SANDBOX, '1', '验收必须保留沙箱')
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-sandbox-test-'))
-  const { api, tools } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
+  const { api, tools } = await loadBundle(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
   // 只观察当前 Node 进程直接启动、使用插件临时 profile 的浏览器。
   async function observe(operation) {
     const script = `$deadline=(Get-Date).AddSeconds(80); do { $p=Get-CimInstance Win32_Process -Filter 'ParentProcessId=${process.pid}' | Where-Object { $_.CommandLine -match '--user-data-dir=.*tsc-png-' } | Select-Object -First 1; if ($p) { Write-Output $p.CommandLine; exit 0 }; Start-Sleep -Milliseconds 200 } while ((Get-Date) -lt $deadline); exit 2`

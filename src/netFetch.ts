@@ -254,7 +254,7 @@ function requestOnce(
         path: target.url.pathname + target.url.search,
         method: 'GET',
         // identity：不解压，避免 gzip 炸弹。
-        headers: { 'Accept-Encoding': 'identity', 'User-Agent': 'tianshu-canvas', ...options.headers },
+        headers: { 'Accept-Encoding': 'identity', 'User-Agent': 'dsh-canvas', ...options.headers },
         lookup: pinnedLookup as unknown as http.RequestOptions['lookup'],
         ...(isHttps ? { servername: target.url.hostname.replace(/^\[|\]$/g, '') } : {}),
         signal,

@@ -50,6 +50,8 @@ import {
 const WEB_DIR = fileURLToPath(new URL('./web/', import.meta.url))
 
 const DEFAULT_PORT = 43117
+/** 插件 config 指定的优先端口；所有 ensureServer 调用都跟随它。 */
+let configuredPort = DEFAULT_PORT
 const MUTATION_HEADER = 'x-dsh-canvas'
 const MAX_BODY = 4 * 1024 * 1024
 /** 视口请求体很小，沿用比通用 JSON 更紧的上限。 */
@@ -109,7 +111,12 @@ export interface ServerHandle {
   url: string
 }
 
-export async function ensureServer(cwd: string, preferredPort = DEFAULT_PORT): Promise<ServerHandle> {
+/** 设置优先监听端口（插件 config.port）；已启动的服务不受影响。 */
+export function configurePort(port: number): void {
+  configuredPort = port
+}
+
+export async function ensureServer(cwd: string, preferredPort = configuredPort): Promise<ServerHandle> {
   if (stopping) await stopping
   if (!state && !starting) starting = (async () => {
     const server = http.createServer(handleRequest)
@@ -148,7 +155,7 @@ export function currentUrl(cwd: string): string | null {
 }
 
 /** 关闭服务、断开事件流并撤销所有工作区授权。 */
-export async function shutdownForTests(): Promise<void> {
+export async function shutdownCanvasServer(): Promise<void> {
   clearNavigationCache()
   if (stopping) return stopping
   if (starting) await starting
@@ -172,6 +179,9 @@ export async function shutdownForTests(): Promise<void> {
   })
   try { await stopping } finally { stopping = null }
 }
+
+/** 旧测试与本地脚本仍在使用的别名。 */
+export const shutdownForTests = shutdownCanvasServer
 
 // ---------------------------------------------------------------------------
 // 路由

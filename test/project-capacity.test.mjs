@@ -7,12 +7,12 @@ import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test, { after } from 'node:test'
 import { build } from 'esbuild'
-import { loadPlugin, rawFetch, testCredential } from './helpers/host.mjs'
+import { loadBundle, rawFetch, testCredential } from './helpers/dsh.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const MAX_HTML_BYTES = 8 * 1024 * 1024
 const MAX_PAGE_COUNT = 1000
-const { tools, api: plugin } = await loadPlugin(pathToFileURL(join(root, 'dist/index.mjs')).href)
+const { tools, api: plugin } = await loadBundle(pathToFileURL(join(root, 'dist/index.mjs')).href)
 const apiDir = mkdtempSync(join(tmpdir(), 'tsc-capacity-api-'))
 await build({
   stdin: { contents: "export * from './src/project.ts'; export { inlineAssets } from './src/inlineAssets.ts';", resolveDir: root },

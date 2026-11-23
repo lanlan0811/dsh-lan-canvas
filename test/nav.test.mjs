@@ -6,12 +6,12 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { installFakeSdk, loadPlugin } from './helpers/host.mjs'
+import { installFakeSdk, loadBundle } from './helpers/dsh.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 installFakeSdk()
 const mod = await import(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
-const { tools } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
+const { tools } = await loadBundle(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
 const { titleSlug, parseNavRef, resolveNavRef, rewriteNavLinks } = mod
 
 // --- slug 算法（确定性） ---

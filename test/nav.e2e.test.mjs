@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test from 'node:test'
-import { loadPlugin } from './helpers/host.mjs'
+import { loadBundle } from './helpers/dsh.mjs'
 import { resolveTestBrowser } from './helpers/browser.mjs'
 
 const root = resolve(import.meta.dirname, '..')
@@ -21,7 +21,7 @@ async function until(check, message) {
 }
 
 test('跳转 e2e：issue 7 嵌套链接、修饰键与原生控件', { skip: !browserPath && '未找到浏览器' }, async (t) => {
-  const { tools } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
+  const { tools } = await loadBundle(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
   const puppeteer = (await import('puppeteer-core')).default
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-nave2e-'))
   let browser

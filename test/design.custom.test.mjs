@@ -8,10 +8,10 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test from 'node:test'
-import { loadPlugin } from './helpers/host.mjs'
+import { loadBundle } from './helpers/dsh.mjs'
 
 const root = resolve(import.meta.dirname, '..')
-const { tools } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
+const { tools } = await loadBundle(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
 
 // 以内置风格为模板造一份完整的自定义 token（值自由、变量名与内置一致）。
 const base = JSON.parse(readFileSync(join(root, 'design-systems/styles/apple/tokens.json'), 'utf8'))

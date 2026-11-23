@@ -1,12 +1,38 @@
 {
-  "name": "tianshu-canvas",
-  "version": "0.9.5",
-  "description": "无限画布设计工作台（天枢 TPI 插件）",
+  "name": "dsh-canvas",
+  "version": "1.0.0",
+  "description": "无限画布设计工作台：9 个 dsh_canvas_* 工具、dsh-canvas 技能、主面板画布与 /design 设计模式",
   "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "engines": {
     "node": ">=24.22.1 <27"
+  },
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./client": "./dist/client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "dist",
+    "cordis.patch.yml",
+    "locale",
+    "icon.svg",
+    "docs",
+    "skills",
+    "LICENSE",
+    "THIRD-PARTY-NOTICES.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": []
+    }
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.web.json --noEmit",
@@ -18,8 +44,7 @@
     "verify:codegen": "node scripts/verify-codegen.mjs",
     "verify:codegen:real": "node scripts/verify-codegen-real.mjs",
     "verify:prototypes": "node scripts/verify-prototypes.mjs",
-    "check:plugin": "node scripts/check-plugin.mjs",
-    "pack:plugin": "node scripts/pack-plugin.mjs"
+    "check:bundle": "node scripts/check-bundle.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

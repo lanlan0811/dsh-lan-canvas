@@ -4,12 +4,12 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test from 'node:test'
-import { loadPlugin } from './helpers/host.mjs'
+import { loadBundle } from './helpers/dsh.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 
 test('AI and HTTP page mutations share immediate forward-reference backfill', async () => {
-  const { tools, api } = await loadPlugin(pathToFileURL(join(root, 'dist/index.mjs')).href)
+  const { tools, api } = await loadBundle(pathToFileURL(join(root, 'dist/index.mjs')).href)
   const roots = []
   const fixture = async () => {
     const cwd = mkdtempSync(join(tmpdir(), 'tsc-nav-entrances-'))

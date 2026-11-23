@@ -5,10 +5,10 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test, { after } from 'node:test'
-import { loadPlugin } from './helpers/host.mjs'
+import { loadBundle } from './helpers/dsh.mjs'
 
 const root = resolve(import.meta.dirname, '..')
-const { tools, api } = await loadPlugin(pathToFileURL(join(root, 'dist/index.mjs')).href)
+const { tools, api } = await loadBundle(pathToFileURL(join(root, 'dist/index.mjs')).href)
 after(async () => { await api.dispose?.() })
 const pageId = 'page-brief-test'
 const html = '<!doctype html><html><body><main><h1>Original content</h1></main></body></html>'

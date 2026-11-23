@@ -18,10 +18,10 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test from 'node:test'
-import { loadPlugin } from './helpers/host.mjs'
+import { loadBundle } from './helpers/dsh.mjs'
 
 const root = resolve(import.meta.dirname, '..')
-const { tools } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
+const { tools } = await loadBundle(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
 
 /** 建一对目录：workspace（含 .dsh-canvas/pages）与 outside，返回路径。 */
 function workspace() {

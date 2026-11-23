@@ -16,7 +16,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test from 'node:test'
-import { loadPlugin } from './helpers/host.mjs'
+import { loadBundle } from './helpers/dsh.mjs'
 import { resolveTestBrowser } from './helpers/browser.mjs'
 
 const root = resolve(import.meta.dirname, '..')
@@ -36,7 +36,7 @@ const PAGES = {
 }
 
 test('渲染与只读编辑回归', { skip: !browserPath && '未找到浏览器' }, async () => {
-  const { tools } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
+  const { tools } = await loadBundle(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
   const puppeteer = (await import('puppeteer-core')).default
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-render-'))
   let browser

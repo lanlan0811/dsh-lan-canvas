@@ -13,7 +13,7 @@ import { dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test from 'node:test'
 import { inflateRawSync } from 'node:zlib'
-import { loadPlugin } from './helpers/host.mjs'
+import { loadBundle } from './helpers/dsh.mjs'
 import { resolveTestBrowser } from './helpers/browser.mjs'
 
 const root = resolve(import.meta.dirname, '..')
@@ -102,7 +102,7 @@ const clickAt = (frame, selector) =>
   }, selector)
 
 test('交互 e2e：画布侧原生默认行为 + 交互库脚本可运行', { skip: !browserPath && '未找到浏览器' }, async () => {
-  const { tools } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
+  const { tools } = await loadBundle(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
   const puppeteer = (await import('puppeteer-core')).default
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-ie2e-'))
   let browser
@@ -238,7 +238,7 @@ test('交互 e2e：画布侧原生默认行为 + 交互库脚本可运行', { sk
 })
 
 test('导出 e2e：多页站 file:// 可跳转、可交互', { skip: !browserPath && '未找到浏览器' }, async () => {
-  const { tools } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
+  const { tools } = await loadBundle(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
   const puppeteer = (await import('puppeteer-core')).default
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-se2e-'))
   const outDir = mkdtempSync(join(tmpdir(), 'tsc-site-'))

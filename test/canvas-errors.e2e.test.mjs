@@ -5,14 +5,14 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test from 'node:test'
-import { loadPlugin } from './helpers/host.mjs'
+import { loadBundle } from './helpers/dsh.mjs'
 import { resolveTestBrowser } from './helpers/browser.mjs'
 
 const browserPath = resolveTestBrowser()
 const root = resolve(import.meta.dirname, '..')
 
 test('变更拒绝可见且不自动重试：节点、连线、批注与视口', { skip: !browserPath && '未找到浏览器' }, async () => {
-  const { api, tools } = await loadPlugin(pathToFileURL(join(root, 'dist/index.mjs')).href)
+  const { api, tools } = await loadBundle(pathToFileURL(join(root, 'dist/index.mjs')).href)
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-shell-errors-'))
   let browser
   try {
@@ -29,6 +29,9 @@ test('变更拒绝可见且不自动重试：节点、连线、批注与视口',
     assert.equal(comment.status, 200)
     browser = await (await import('puppeteer-core')).default.launch({ executablePath: browserPath, headless: true, args: ['--disable-gpu', '--disable-dev-shm-usage'] })
     const page = await browser.newPage()
+    // 全量 CI 里本用例与其他 puppeteer 用例串行共享 CPU，30s 固定等待会偶发超时。
+    // 统一放宽默认等待，并让 expectAlert 明确按 100ms 轮询（不靠固定 sleep）。
+    page.setDefaultTimeout(60_000)
     const unhandled = []
     page.on('pageerror', error => unhandled.push(error.message))
     await page.setViewport({ width: 1600, height: 1000 })
@@ -51,7 +54,11 @@ test('变更拒绝可见且不自动重试：节点、连线、批注与视口',
       } else void request.continue()
     })
     async function expectAlert(text) {
-      await page.waitForFunction(expected => document.querySelector('[role=alert]')?.textContent?.includes(expected), {}, text)
+      await page.waitForFunction(
+        expected => document.querySelector('[role=alert]')?.textContent?.includes(expected),
+        { polling: 100, timeout: 60_000 },
+        text,
+      )
       const alert = await page.$eval('[role=alert]', element => element.textContent)
       assert.doesNotMatch(alert, /C:[/]Users|private[/]workspace/)
     }
@@ -75,16 +82,19 @@ test('变更拒绝可见且不自动重试：节点、连线、批注与视口',
     await page.click('.comment-item__btn[title=删除批注]')
     await expectAlert('验收拒绝 remove')
     await page.click('.app-error__dismiss')
+    await page.waitForFunction(() => document.querySelector('[role=alert]') === null, { polling: 100, timeout: 60_000 })
 
+    await page.waitForSelector('.react-flow__node[data-id=page-errors] .page-node__header')
     const header = await page.$('.react-flow__node[data-id=page-errors] .page-node__header')
     const headerBox = await header.boundingBox()
     const positionBefore = await page.$eval('.react-flow__node[data-id=page-errors]', element => element.style.transform)
     await page.mouse.move(headerBox.x + 70, headerBox.y + headerBox.height / 2)
     await page.mouse.down()
+    await page.mouse.move(headerBox.x + 90, headerBox.y + headerBox.height / 2 + 12, { steps: 4 })
     await page.mouse.move(headerBox.x + 130, headerBox.y + headerBox.height / 2 + 48, { steps: 8 })
     await page.mouse.up()
     await expectAlert('验收拒绝 move')
-    await page.waitForFunction(expected => document.querySelector('.react-flow__node[data-id=page-errors]')?.style.transform === expected, {}, positionBefore)
+    await page.waitForFunction(expected => document.querySelector('.react-flow__node[data-id=page-errors]')?.style.transform === expected, { polling: 100, timeout: 60_000 }, positionBefore)
     await page.click('.app-error__dismiss')
 
     const source = await (await page.$('.react-flow__node[data-id=page-errors] .react-flow__handle-right')).boundingBox()

@@ -9,15 +9,10 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test from 'node:test'
-import { installFakeSdk } from './helpers/host.mjs'
+import { loadBundle } from './helpers/dsh.mjs'
 
 const root = resolve(import.meta.dirname, '..')
-const { tools } = await (async () => {
-  installFakeSdk()
-  const mod = await import(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
-  const api = await mod.default.activate({ log: { debug() {}, warn() {} } })
-  return { tools: Object.fromEntries(api.tools.map((t) => [t.name, t])) }
-})()
+const { tools } = await loadBundle(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
 
 /** 建一个临时工作区并锁定内置风格 apple，返回 cwd 与清理函数。 */
 async function setup() {

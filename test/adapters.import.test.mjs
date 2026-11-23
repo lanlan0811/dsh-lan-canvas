@@ -9,11 +9,11 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { loadPlugin } from './helpers/host.mjs'
+import { loadBundle } from './helpers/dsh.mjs'
 import { validateTokens } from '../scripts/design/design-validate.mjs'
 
 const root = resolve(import.meta.dirname, '..')
-const { api } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
+const { api } = await loadBundle(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
 const tool = (name) => api.tools.find((t) => t.name === name)
 
 function workspace() {

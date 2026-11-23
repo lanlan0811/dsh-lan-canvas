@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test from 'node:test'
-import { installFakeSdk } from './helpers/host.mjs'
+import { installFakeSdk } from './helpers/dsh.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 installFakeSdk()
@@ -177,9 +177,7 @@ test('action=extract 端到端：dry_run 不落盘，正式执行落盘 tokens.j
 })
 
 async function loadTools() {
-  const { installFakeSdk } = await import('./helpers/host.mjs')
-  installFakeSdk()
-  const mod = await import(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
-  const api = await mod.default.activate({ log: { debug() {}, warn() {} } })
-  return Object.fromEntries(api.tools.map((t) => [t.name, t]))
+  const { loadBundle } = await import('./helpers/dsh.mjs')
+  const { tools } = await loadBundle(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
+  return tools
 }

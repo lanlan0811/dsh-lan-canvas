@@ -7,11 +7,11 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test from 'node:test'
-import { loadPlugin } from './helpers/host.mjs'
+import { loadBundle } from './helpers/dsh.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const entry = pathToFileURL(join(root, 'dist', 'index.mjs')).href
-const { tools } = await loadPlugin(entry)
+const { tools } = await loadBundle(entry)
 
 const strokeOf = (styleId) =>
   JSON.parse(readFileSync(join(root, 'dist', 'design', 'styles', styleId, 'icons.json'), 'utf8')).stroke

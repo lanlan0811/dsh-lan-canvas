@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test from 'node:test'
-import { installFakeSdk } from './helpers/host.mjs'
+import { installFakeSdk } from './helpers/dsh.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 installFakeSdk()

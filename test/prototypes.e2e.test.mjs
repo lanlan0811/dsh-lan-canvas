@@ -4,12 +4,12 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test from 'node:test'
-import { loadPlugin } from './helpers/host.mjs'
+import { loadBundle } from './helpers/dsh.mjs'
 import { resolveTestBrowser } from './helpers/browser.mjs'
 
 const root=resolve(import.meta.dirname,'..')
 const browserPath=resolveTestBrowser()
-const { tools, api }=await loadPlugin(pathToFileURL(join(root,'dist','index.mjs')).href)
+const { tools, api }=await loadBundle(pathToFileURL(join(root,'dist','index.mjs')).href)
 
 test('原创原型：真实任务搜索分页、输入保留、表单校验、聊天与移动多视图', {skip:!browserPath&&'未找到浏览器',timeout:180000},async()=>{
   const puppeteer=(await import('puppeteer-core')).default

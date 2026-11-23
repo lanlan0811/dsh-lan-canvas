@@ -1,34 +1,34 @@
 /**
- * 宿主桥：插件内任何模块都能用到 activate(host) 拿到的宿主服务。
+ * 宿主桥：插件内任何模块都能用到 apply(ctx) 拿到的宿主日志通道。
  *
- * 官方要求日志走 host.log（省略令牌、原始会话文本与敏感参数），并且 isWorker 为真时
- * 跳过用户数据写入，防止子会话重复写入。宿主之外（单测/本地脚本）没有 host，
- * 日志回落到 console，worker 判定回落为 false。
+ * 日志必须脱敏（省略令牌、原始会话文本与敏感参数）；本模块只负责转发，
+ * 脱敏由调用方（errors/reportError）完成。宿主之外（单测/本地脚本）没有宿主日志，
+ * 回落到 stderr。
  */
 export interface HostLog {
   debug(message: string): void
   warn(message: string): void
 }
 
-export interface HostServices {
-  log: HostLog
-  isWorker: boolean
+const fallback: HostLog = {
+  debug() {},
+  warn: (message) => console.error(message),
 }
 
-let services: HostServices | null = null
+let services: { log: HostLog } | null = null
 
-export function setHostServices(next: HostServices | null): void {
-  services = next
+/** 注入宿主日志；传 null 恢复默认（标准输出到 stderr）。 */
+export function setHostLogger(next: HostLog | null): void {
+  services = next ? { log: next } : null
 }
 
-/** 子会话（worker）不写用户数据。宿主外视为主会话。 */
-export function isWorkerSession(): boolean {
-  return services?.isWorker === true
-}
-
-/** 非致命问题：有宿主日志通道时走 host.log.warn，否则打到 stderr。 */
+/** 非致命问题：有宿主日志通道时走宿主 warn，否则打到 stderr。 */
 export function warnUser(message: string): void {
   const line = `[dsh-canvas] ${message}`
-  if (services) services.log.warn(line)
-  else console.error(line)
+  try {
+    const log = services?.log ?? fallback
+    log.warn(line)
+  } catch {
+    /* 日志失败不能影响功能 */
+  }
 }

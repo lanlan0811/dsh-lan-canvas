@@ -141,7 +141,7 @@ async function mutate(path: string, data: Record<string, unknown>): Promise<Resp
     const body: unknown = await res.clone().json()
     if (body && typeof body === 'object' && 'warnings' in body && Array.isArray(body.warnings)) {
       const warnings = body.warnings.filter((value): value is string => typeof value === 'string').map(safeErrorText)
-      if (warnings.length) window.dispatchEvent(new CustomEvent('tianshu-canvas-warning', { detail: warnings.join('；') }))
+      if (warnings.length) window.dispatchEvent(new CustomEvent('dsh-canvas-warning', { detail: warnings.join('；') }))
     }
   } catch { /* A successful non-JSON response remains successful. */ }
   return res

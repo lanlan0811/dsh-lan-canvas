@@ -7,19 +7,19 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import test from 'node:test'
-import { installFakeSdk } from './helpers/host.mjs'
+import { loadBundle } from './helpers/dsh.mjs'
 
-installFakeSdk()
-const mod = await import(pathToFileURL(join(resolve(import.meta.dirname, '..'), 'dist/index.mjs')).href)
+const ENTRY = pathToFileURL(join(resolve(import.meta.dirname, '..'), 'dist/index.mjs')).href
+const mod = await import(ENTRY)
 
 async function fixture(run) {
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-tool-errors-'))
-  const logs = []
-  const plugin = mod.default.activate({ log: { debug() {}, warn(message) { logs.push(message) } } })
-  const tools = Object.fromEntries(plugin.tools.map(tool => [tool.name, tool]))
+  const { api, harness } = await loadBundle(ENTRY)
+  const logs = harness.warnings
+  const tools = Object.fromEntries(api.tools.map(tool => [tool.name, tool]))
   const call = (name, args = {}) => tools[name].execute({ args, cwd, sessionId: 'raw-error-regression' })
   try { await run({ cwd, call, logs, tools }) } finally {
-    await plugin.dispose()
+    await api.dispose()
     rmSync(cwd, { recursive: true, force: true })
   }
 }

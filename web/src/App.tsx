@@ -187,8 +187,8 @@ function Canvas() {
       const detail: unknown = (event as CustomEvent<unknown>).detail
       if (typeof detail === 'string') setMutationError('导航提示：' + detail)
     }
-    window.addEventListener('tianshu-canvas-warning', onWarning)
-    return () => window.removeEventListener('tianshu-canvas-warning', onWarning)
+    window.addEventListener('dsh-canvas-warning', onWarning)
+    return () => window.removeEventListener('dsh-canvas-warning', onWarning)
   }, [])
 
   const runMutation = useCallback(async (operation: () => Promise<unknown>, restoreViewport = false): Promise<void> => {

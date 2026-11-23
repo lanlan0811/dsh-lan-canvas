@@ -7,10 +7,10 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test from 'node:test'
-import { loadPlugin } from './helpers/host.mjs'
+import { loadBundle } from './helpers/dsh.mjs'
 
 const root = resolve(import.meta.dirname, '..')
-const { tools } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
+const { tools } = await loadBundle(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
 
 const pageFile = (cwd, id) => readFileSync(join(cwd, '.dsh-canvas', 'pages', `${id}.html`), 'utf8')
 const projectFile = (cwd) => JSON.parse(readFileSync(join(cwd, '.dsh-canvas', 'project.json'), 'utf8'))

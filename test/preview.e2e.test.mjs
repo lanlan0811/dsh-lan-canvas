@@ -13,7 +13,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test from 'node:test'
-import { loadPlugin, rawFetch } from './helpers/host.mjs'
+import { loadBundle, rawFetch } from './helpers/dsh.mjs'
 import { resolveTestBrowser } from './helpers/browser.mjs'
 
 const root = resolve(import.meta.dirname, '..')
@@ -22,7 +22,7 @@ const browserPath = resolveTestBrowser()
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 test('预览 e2e：右键菜单 / 设备切换 / 交互 / 跳转 / 关闭', { skip: !browserPath && '未找到浏览器' }, async () => {
-  const { tools } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
+  const { tools } = await loadBundle(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
   const puppeteer = (await import('puppeteer-core')).default
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-preview-e2e-'))
   let browser

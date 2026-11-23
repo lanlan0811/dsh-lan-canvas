@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-const REPOSITORY = 'lanlan0811/Tianshu-Canvas'
+const REPOSITORY = 'lanlan0811/dsh-lan-canvas'
 const root = resolve(import.meta.dirname, '..')
 
 export function releaseContext(env) {
@@ -25,14 +25,16 @@ export function validateReleaseFiles(directory, tag) {
   const version = tag.slice(1)
   const readJson = (name) => JSON.parse(readFileSync(join(directory, name), 'utf8'))
   const pkg = readJson('package.json')
-  const manifest = readJson('tianshu.plugin.json')
   const lock = readJson('package-lock.json')
   for (const [name, value] of [
-    ['package.json', pkg.version], ['tianshu.plugin.json', manifest.version],
-    ['package-lock.json', lock.version], ['package-lock.json packages[""]', lock.packages?.['']?.version],
+    ['package.json', pkg.version],
+    ['package-lock.json', lock.version],
+    ['package-lock.json packages[""]', lock.packages?.['']?.version],
   ]) {
     if (value !== version) throw new Error(`${name} 版本必须与 ${tag} 一致`)
   }
+  if (pkg.name !== 'dsh-canvas') throw new Error('package.json name 必须是 dsh-canvas')
+  if (pkg.dsh?.bundle?.patch !== './cordis.patch.yml') throw new Error('package.json 缺少 dsh.bundle.patch')
   const notes = join(directory, 'release', `release-${version}.md`)
   let contents
   try { contents = readFileSync(notes, 'utf8') } catch { throw new Error(`缺少发布说明 release/release-${version}.md`) }

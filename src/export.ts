@@ -28,7 +28,7 @@ export interface ExportFile {
 }
 
 const BROWSER_CANDIDATES = [
-  process.env.TIANSHU_CANVAS_BROWSER,
+  process.env.DSH_CANVAS_BROWSER,
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
   'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
@@ -73,7 +73,7 @@ export function exportPng(cwd: string): Promise<ExportFile> {
  *
  * 环境确实无法启动沙箱时（Linux 上缺 SUID helper 且内核禁止非特权 user namespace），
  * 由 `launchBrowser` 抛出明确错误并**停止**截图/视觉回归，而不是静默降级为无沙箱。
- * 仅在此类已知受限环境下才通过 `TIANSHU_CANVAS_ALLOW_NO_SANDBOX=1` 显式放开。
+ * 仅在此类已知受限环境下才通过 `DSH_CANVAS_ALLOW_NO_SANDBOX=1` 显式放开。
  */
 const LAUNCH_ARGS = [
   '--remote-debugging-port=0',
@@ -97,7 +97,7 @@ const SANDBOX_FAILURE_PATTERN = /(?:No usable sandbox|Failed to move to new name
 
 /** 是否显式允许在无法启动沙箱时降级（默认否）。 */
 function sandboxOptOutAllowed(): boolean {
-  return process.env.TIANSHU_CANVAS_ALLOW_NO_SANDBOX === '1'
+  return process.env.DSH_CANVAS_ALLOW_NO_SANDBOX === '1'
 }
 
 /** 组装本次启动参数；默认保留沙箱。 */
@@ -227,7 +227,7 @@ async function exportPngOnce(cwd: string): Promise<ExportFile> {
   const exe = resolveBrowser()
   if (!exe) {
     throw new Error(
-      '未找到 Chrome/Edge，无法导出 PNG。请安装 Chrome/Edge，或用环境变量 TIANSHU_CANVAS_BROWSER 指定浏览器路径。',
+      '未找到 Chrome/Edge，无法导出 PNG。请安装 Chrome/Edge，或用环境变量 DSH_CANVAS_BROWSER 指定浏览器路径。',
     )
   }
   const { url } = await ensureServer(cwd)

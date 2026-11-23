@@ -5,11 +5,10 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import test from 'node:test'
 import { releaseContext, validateReleaseFiles, verifyReleaseRevision, successfulMainCi, requireSuccessfulMainCi } from '../scripts/check-release-ci.mjs'
-import { PACKAGE_ENTRIES } from '../scripts/check-plugin.mjs'
 
 const sha = 'a'.repeat(40)
 const otherSha = 'b'.repeat(40)
-const context = { GITHUB_REPOSITORY: 'lanlan0811/Tianshu-Canvas', GITHUB_EVENT_NAME: 'push', GITHUB_REF_TYPE: 'tag', GITHUB_REF: 'refs/tags/v1.2.3', GITHUB_REF_NAME: 'v1.2.3', GITHUB_SHA: sha }
+const context = { GITHUB_REPOSITORY: 'lanlan0811/dsh-lan-canvas', GITHUB_EVENT_NAME: 'push', GITHUB_REF_TYPE: 'tag', GITHUB_REF: 'refs/tags/v1.2.3', GITHUB_REF_NAME: 'v1.2.3', GITHUB_SHA: sha }
 const passingRun = (overrides = {}) => ({ id: 100, run_attempt: 1, head_sha: sha, head_branch: 'main', event: 'push', status: 'completed', conclusion: 'success', created_at: '2026-11-10T12:00:00Z', run_started_at: '2026-11-10T12:01:00Z', updated_at: '2026-11-10T12:02:00Z', ...overrides })
 
 test('发布事件仅接受固定仓库稳定 tag push，引用和 SHA 必须有效', () => {
@@ -25,8 +24,7 @@ test('发布事件仅接受固定仓库稳定 tag push，引用和 SHA 必须有
 function withReleaseFixture(run) {
   const directory = mkdtempSync(join(tmpdir(), 'tsc-release-gate-'))
   try {
-    writeFileSync(join(directory, 'package.json'), JSON.stringify({ version: '1.2.3' }))
-    writeFileSync(join(directory, 'tianshu.plugin.json'), JSON.stringify({ version: '1.2.3' }))
+    writeFileSync(join(directory, 'package.json'), JSON.stringify({ name: 'dsh-canvas', version: '1.2.3', dsh: { bundle: { patch: './cordis.patch.yml' } } }))
     writeFileSync(join(directory, 'package-lock.json'), JSON.stringify({ version: '1.2.3', packages: { '': { version: '1.2.3' } } }))
     mkdirSync(join(directory, 'release'))
     writeFileSync(join(directory, 'release/release-1.2.3.md'), '# v1.2.3\n修复与验收详情。\n')
@@ -34,9 +32,9 @@ function withReleaseFixture(run) {
   } finally { rmSync(directory, { recursive: true, force: true }) }
 }
 
-test('发布版本必须与 package、manifest 和 lock 两处一致', () => {
+test('发布版本必须与 package 和 lock 两处一致', () => {
   withReleaseFixture((directory) => assert.deepEqual(validateReleaseFiles(directory, 'v1.2.3'), { version: '1.2.3', notes: join(directory, 'release/release-1.2.3.md') }))
-  for (const filename of ['package.json', 'tianshu.plugin.json', 'package-lock.json']) {
+  for (const filename of ['package.json', 'package-lock.json']) {
     withReleaseFixture((directory) => {
       const file = join(directory, filename)
       const data = JSON.parse(readFileSync(file, 'utf8'))
@@ -159,7 +157,7 @@ test('CI REST 查询固定官方 endpoint 并严格复核返回事件，不信�
   })
   assert.equal(run.id, 100)
   assert.equal(request.url.origin, 'https://api.github.com')
-  assert.equal(request.url.pathname, '/repos/lanlan0811/Tianshu-Canvas/actions/workflows/ci.yml/runs')
+  assert.equal(request.url.pathname, '/repos/lanlan0811/dsh-lan-canvas/actions/workflows/ci.yml/runs')
   assert.equal(request.url.searchParams.get('head_sha'), sha)
   assert.equal(request.url.searchParams.get('branch'), 'main')
   assert.equal(request.url.searchParams.get('event'), 'push')
@@ -182,9 +180,9 @@ test('Release 工作流在创建 Release 前复核 main CI 并执行完整门禁
   assert.match(workflow, /actions: read/)
   const required = [
     'node scripts/check-release-ci.mjs', 'npm ci', 'npm run typecheck', 'npm run build',
-    'git diff --exit-code -- dist', 'npm run notices', 'git diff --exit-code -- THIRD-PARTY-NOTICES.md',
-    'TIANSHU_CANVAS_REQUIRE_BROWSER=1', 'npm test', 'npm run verify:codegen', 'npm run check:plugin', 'npm run verify:prototypes',
-    'test -s', 'gh release create',
+    'npm run notices', 'git status --porcelain -- dist', 'THIRD-PARTY-NOTICES.md',
+    'DSH_CANVAS_REQUIRE_BROWSER=1', 'npm test', 'npm run verify:codegen', 'npm run check:bundle',
+    'npm run verify:prototypes', 'test -s', 'gh release create',
   ]
   let previous = -1
   for (const command of required) {
@@ -210,7 +208,10 @@ test('main CI requires full original-composition evidence before release eligibi
   assert.ok(workflow.includes('include-hidden-files: true'))
 })
 
-test('release package ships only the current acceptance document', () => {
-  const documents = PACKAGE_ENTRIES.filter(entry => entry.startsWith('docs/'))
-  assert.deepEqual(documents, ['docs/review-0.9.5-acceptance.md'])
+test('release package ships the bundle assets', () => {
+  const pkg = JSON.parse(readFileSync(join(resolve(import.meta.dirname, '..'), 'package.json'), 'utf8'))
+  for (const entry of ['dist', 'cordis.patch.yml', 'locale', 'icon.svg', 'docs', 'skills', 'THIRD-PARTY-NOTICES.md']) {
+    assert.ok(pkg.files.includes(entry), `package.json files 缺少 ${entry}`)
+  }
+  assert.equal(pkg.dsh?.bundle?.patch, './cordis.patch.yml')
 })

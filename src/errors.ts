@@ -45,7 +45,7 @@ export function formatPublicError(error: unknown): PublicError {
     return { status: 400, message: '网络抓取失败；请检查公开地址、响应体积及超时后重试，详细原因见宿主日志。' }
   }
   if (err.constructor.name === 'BrowserSpawnError') {
-    return { status: 500, message: '无法启动浏览器；请检查 Chrome/Edge 安装及 TIANSHU_CANVAS_BROWSER 配置后重试。' }
+    return { status: 500, message: '无法启动浏览器；请检查 Chrome/Edge 安装及 DSH_CANVAS_BROWSER 配置后重试。' }
   }
   if (err.constructor.name === 'SandboxUnavailableError') {
     return { status: 500, message: 'Chromium 沙箱无法启动，已停止操作；请修复沙箱环境后重试，不会自动降级。' }
@@ -71,8 +71,8 @@ export function reportError(error: unknown, operation = '操作失败'): string 
 /** Older export code reports browser failures as strings instead of typed errors. */
 export function reportResultError(message: string): string {
   reportError(new Error(message), '导出失败')
-  if (/无法启动浏览器/.test(message)) return '无法启动浏览器；请检查 Chrome/Edge 安装及 TIANSHU_CANVAS_BROWSER 配置后重试。'
+  if (/无法启动浏览器/.test(message)) return '无法启动浏览器；请检查 Chrome/Edge 安装及 DSH_CANVAS_BROWSER 配置后重试。'
   if (/沙箱/.test(message)) return 'Chromium 沙箱无法启动，已停止操作；请修复沙箱环境后重试，不会自动降级。'
-  if (/未找到 Chrome\/Edge/.test(message)) return '未找到 Chrome/Edge；请安装浏览器或设置 TIANSHU_CANVAS_BROWSER 后重试。'
+  if (/未找到 Chrome\/Edge/.test(message)) return '未找到 Chrome/Edge；请安装浏览器或设置 DSH_CANVAS_BROWSER 后重试。'
   return formatPublicError(new Error(message)).message
 }

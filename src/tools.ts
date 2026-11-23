@@ -29,7 +29,7 @@ import { readPageBrief, savePageBrief } from './brief.js'
 import { listPrototypes, getPrototype, listDirections, getDirection } from './prototypes.js'
 import { buildBrandPack, exportBrandPack, forgetStyle, importBrandPack, memorySummary, recordUsage, verifyBrandPack } from './brand.js'
 import { DEFAULT_DEVICE, isDeviceType, resolveSize, type DeviceType } from './device.js'
-import { isWorkerSession, warnUser } from './host.js'
+import { warnUser } from './host.js'
 import {
   designStyleExists,
   designStyleIds,
@@ -190,8 +190,6 @@ async function canvasOpen(call: ToolCall): Promise<ToolResult> {
 }
 
 function writeUrlHint(cwd: string, url: string): void {
-  // 官方约定：worker（子会话）不写用户数据，避免重复写入。
-  if (isWorkerSession()) return
   try {
     // url.txt 是隐式写入：必须与页面/项目文件同源走边界保护——
     // 固定临时文件 + 跟随链接的 writeFileSync 曾被用来覆盖工作区外的文件。
@@ -1381,7 +1379,7 @@ async function canvasAudit(call: ToolCall): Promise<ToolResult> {
       if (error) return { content: error, isError: true }
       const { url } = await ensureServer(call.cwd)
       const exe = resolveBrowser()
-      if (!exe) return { content: '未找到 Chrome/Edge，无法渲染页面做可访问性审计。可用 TIANSHU_CANVAS_BROWSER 指定路径。', isError: true }
+      if (!exe) return { content: '未找到 Chrome/Edge，无法渲染页面做可访问性审计。可用 DSH_CANVAS_BROWSER 指定路径。', isError: true }
       const { browser, dispose } = await launchBrowser(exe)
       try {
         const authPage = await browser.newPage()
@@ -1503,7 +1501,7 @@ async function canvasComments(call: ToolCall): Promise<ToolResult> {
 }
 
 // ---------------------------------------------------------------------------
-// 工具清单（名称必须与 tianshu.plugin.json 的 contributes.tools 完全一致）
+// 工具清单（9 个 dsh_canvas_*；名称与 cordis.patch.yml / check-bundle 的期望一致）
 // ---------------------------------------------------------------------------
 
 export const tools: TpiTool[] = [

@@ -26,20 +26,14 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Verify committed dist is up to date
-        run: |
-          if ! git diff --exit-code -- dist; then
-            echo "::error::dist/ 与源码不一致。请本地运行 'npm run build' 并提交产物。"
-            exit 1
-          fi
-
-      # 发行包必须带第三方许可与版权声明；该文件依实际打包产物生成，
-      # 依赖升级后若未重新生成，平台收到的声明就会过期。
-      - name: Verify third-party notices are up to date
+      # dist/ 与第三方许可声明入库：DSH 安装 bundle 不执行构建脚本。
+      # 用 git status 而不是 git diff，确保「未跟踪的 dist/」也会被判为过期（旧的假绿）。
+      - name: Verify committed dist and notices are up to date
         run: |
           npm run notices
-          if ! git diff --exit-code -- THIRD-PARTY-NOTICES.md; then
-            echo "::error::THIRD-PARTY-NOTICES.md 与当前依赖不一致。请运行 'npm run notices' 并提交。"
+          if [ -n "$(git status --porcelain -- dist THIRD-PARTY-NOTICES.md)" ]; then
+            git status --porcelain -- dist THIRD-PARTY-NOTICES.md
+            echo "::error::dist/ 或 THIRD-PARTY-NOTICES.md 与源码不一致。请本地运行 'npm run build && npm run notices' 并提交产物。"
             exit 1
           fi
 
@@ -57,8 +51,8 @@ jobs:
             exit 1
           fi
           "$browser_path" --version
-          echo "TIANSHU_CANVAS_BROWSER=$browser_path" >> "$GITHUB_ENV"
-          echo "TIANSHU_CANVAS_REQUIRE_BROWSER=1" >> "$GITHUB_ENV"
+          echo "DSH_CANVAS_BROWSER=$browser_path" >> "$GITHUB_ENV"
+          echo "DSH_CANVAS_REQUIRE_BROWSER=1" >> "$GITHUB_ENV"
 
       - name: Test
         run: npm test
@@ -66,8 +60,8 @@ jobs:
       - name: Verify codegen compiles (adapter stubs)
         run: npm run verify:codegen
 
-      - name: Plugin release self-check
-        run: npm run check:plugin
+      - name: Bundle self-check
+        run: npm run check:bundle
 
       - name: Verify all original compositions
         run: npm run verify:prototypes -- --out .tmp/ci-prototypes

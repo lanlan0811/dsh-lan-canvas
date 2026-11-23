@@ -1,0 +1,9 @@
+# dsh-canvas bundle 的 Loader 补丁：插入一行 Host 插件。
+# 画布优先监听 43117（占用时自动递增 20 次后随机端口）；
+# openBrowser=never 表示只在主面板 iframe 里打开，不进系统浏览器。
+- insert:
+    - id: dsh-canvas
+      name: dsh-canvas
+      config:
+        port: 43117
+        openBrowser: never

@@ -98,7 +98,7 @@ let queue: Promise<unknown> = Promise.resolve()
 
 async function withBrowser<T>(cwd: string, run: (page: import('puppeteer-core').Page, url: string) => Promise<T>): Promise<T> {
   const exe = resolveBrowser()
-  if (!exe) throw new Error('未找到 Chrome/Edge，无法截图。请安装 Chrome/Edge，或用环境变量 TIANSHU_CANVAS_BROWSER 指定路径。')
+  if (!exe) throw new Error('未找到 Chrome/Edge，无法截图。请安装 Chrome/Edge，或用环境变量 DSH_CANVAS_BROWSER 指定路径。')
   const { url } = await ensureServer(cwd)
   const { browser, dispose } = await launchBrowser(exe)
   const page = await browser.newPage()

@@ -5,14 +5,14 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test from 'node:test'
-import { loadPlugin } from './helpers/host.mjs'
+import { loadBundle } from './helpers/dsh.mjs'
 import { resolveTestBrowser } from './helpers/browser.mjs'
 
 const browserPath = resolveTestBrowser()
 const root = resolve(import.meta.dirname, '..')
 
 test('画布外壳：图标名称、可见焦点、导出键盘与重命名取消', { skip: !browserPath && '未找到浏览器' }, async () => {
-  const { api, tools } = await loadPlugin(pathToFileURL(join(root, 'dist/index.mjs')).href)
+  const { api, tools } = await loadBundle(pathToFileURL(join(root, 'dist/index.mjs')).href)
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-shell-a11y-'))
   let browser
   try {

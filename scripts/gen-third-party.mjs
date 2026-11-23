@@ -1,12 +1,12 @@
 /**
- * 生成 `THIRD-PARTY-NOTICES.md`：随发行 ZIP 分发的第三方组件许可与版权声明。
+ * 生成 `THIRD-PARTY-NOTICES.md`：随发行包分发的第三方组件许可与版权声明。
  *
  * 为什么是「生成」而不是手写清单：发行包里的组件完全由 esbuild 打包决定，
  * 手写清单会随依赖升级悄悄过期。本脚本用 esbuild 的 metafile 反查**真正被内联进
- * `dist/index.mjs` 与 `dist/web/canvas.js` 的** node_modules 包，逐个抽取其
+ * `dist/index.mjs`、`dist/client.js` 与 `dist/web/canvas.js` 的** node_modules 包，逐个抽取其
  * package.json 的许可字段与 LICENSE 全文，因此清单与产物永远一致。
  *
- * 产出必须提交进仓库（与 dist/ 同样处理），CI 用 `git diff --exit-code` 校验
+ * 产出必须提交进仓库（与 dist/ 同样处理），CI 用 `git status --porcelain` 校验
  * 它与源码/锁文件一致，避免平台收到的发行包里许可声明过期。
  *
  * 用法：node scripts/gen-third-party.mjs [--check]
@@ -27,7 +27,7 @@ async function bundledPackages() {
   const common = { absWorkingDir: root, bundle: true, write: false, metafile: true, logLevel: 'silent' }
   const node = await build({
     ...common,
-    entryPoints: ['src/index.ts'],
+    entryPoints: ['src/dsh/index.ts'],
     platform: 'node',
     format: 'esm',
     target: 'node24',
@@ -44,6 +44,20 @@ async function bundledPackages() {
     define: { 'process.env.NODE_ENV': '"production"' },
     loader: { '.css': 'css', '.png': 'dataurl' },
   })
+  // Client 半只 externalize react（宿主模块表提供），但同样纳入扫描：
+  // 将来若引入其它运行期依赖，许可声明不会漏。
+  const client = await build({
+    ...common,
+    entryPoints: ['client/src/index.tsx'],
+    outfile: 'dist/_notices-client-probe.js',
+    platform: 'browser',
+    format: 'cjs',
+    target: ['es2020'],
+    jsx: 'transform',
+    jsxFactory: 'React.createElement',
+    jsxFragment: 'React.Fragment',
+    external: ['react'],
+  })
 
   const collect = (metafile) => {
     const set = new Set()
@@ -53,7 +67,7 @@ async function bundledPackages() {
     }
     return set
   }
-  return { node: collect(node.metafile), web: collect(web.metafile) }
+  return { node: collect(node.metafile), web: collect(web.metafile), client: collect(client.metafile) }
 }
 
 const LICENSE_FILE = /^(?:licen[cs]e|copying|notice)(?:\.(?:md|txt|markdown))?$/i
@@ -133,7 +147,7 @@ function section(pkgs) {
 }
 
 async function generate() {
-  const { node, web } = await bundledPackages()
+  const { node, web, client } = await bundledPackages()
   const load = (names) =>
     [...names]
       .map((n) => readPackage(join(root, 'node_modules', ...n.split('/'))))
@@ -142,16 +156,19 @@ async function generate() {
 
   const nodePkgs = load(node)
   const webPkgs = load(web)
-  const all = [...new Map([...nodePkgs, ...webPkgs].map((p) => [p.name, p])).values()].sort((a, b) => a.name.localeCompare(b.name))
+  // Client 半只 externalize react（宿主模块表提供）；为空时不留空小节。
+  const clientPkgs = load(client).filter((p) => !web.has(p.name) && !node.has(p.name))
+  const all = [...new Map([...nodePkgs, ...webPkgs, ...clientPkgs].map((p) => [p.name, p])).values()].sort((a, b) => a.name.localeCompare(b.name))
 
   const header = [
     '# 第三方组件许可与版权声明',
     '',
-    '本文件由 `scripts/gen-third-party.mjs` 依据实际打包产物生成，随发行 ZIP 一并分发。',
+    '本文件由 `scripts/gen-third-party.mjs` 依据实际打包产物生成，随发行包一并分发。',
     '插件自身的代码以仓库根目录的 Apache-2.0（见 `LICENSE`）授权；下列第三方组件仍适用其各自许可。',
     '',
-    `- 内联进 \`dist/index.mjs\`（Node 侧）的组件：${nodePkgs.length} 个`,
+    `- 内联进 \`dist/index.mjs\`（Host 侧）的组件：${nodePkgs.length} 个`,
     `- 内联进 \`dist/web/canvas.js\`（画布前端，含 React Flow）的组件：${webPkgs.length} 个`,
+    `- 内联进 \`dist/client.js\`（DSH Client 半）的组件：${clientPkgs.length} 个（React 由宿主模块表提供）`,
     `- 去重后共 ${all.length} 个组件。`,
     '',
     '## 组件清单',
@@ -165,9 +182,9 @@ async function generate() {
   ].join('\n')
 
   const body = [
-    '<!-- Node 侧（dist/index.mjs） -->',
+    '<!-- Host 侧（dist/index.mjs） -->',
     '',
-    '## Node 侧内联组件（`dist/index.mjs`）',
+    '## Host 侧内联组件（`dist/index.mjs`）',
     '',
     section(nodePkgs),
     '<!-- 画布前端（dist/web/canvas.js） -->',
@@ -175,6 +192,9 @@ async function generate() {
     '## 画布前端内联组件（`dist/web/canvas.js`）',
     '',
     section(webPkgs),
+    ...(clientPkgs.length === 0
+      ? []
+      : ['<!-- Client 半（dist/client.js） -->', '', '## Client 半内联组件（`dist/client.js`）', '', section(clientPkgs)]),
   ].join('\n')
 
   const text = header + body

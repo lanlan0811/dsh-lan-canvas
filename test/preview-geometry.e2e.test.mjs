@@ -5,15 +5,15 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test from 'node:test'
-import { loadPlugin } from './helpers/host.mjs'
+import { loadBundle } from './helpers/dsh.mjs'
 import { resolveTestBrowser } from './helpers/browser.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const browserPath = resolveTestBrowser()
 const fixture = readFileSync(join(root, 'test/fixtures/preview-clarity.html'), 'utf8')
 const sizes = { tablet: [768, 1024], mobile: [375, 812], free: [800, 600] }
-const evidenceDir = process.env.TIANSHU_CANVAS_PREVIEW_EVIDENCE
-  ? resolve(process.env.TIANSHU_CANVAS_PREVIEW_EVIDENCE) : null
+const evidenceDir = process.env.DSH_CANVAS_PREVIEW_EVIDENCE
+  ? resolve(process.env.DSH_CANVAS_PREVIEW_EVIDENCE) : null
 
 async function ready(page) {
   const handle = await page.waitForSelector('.preview-device__iframe', { timeout: 10000 })
@@ -106,7 +106,7 @@ async function geometry(page) {
 }
 
 async function setup() {
-  const { tools } = await loadPlugin(pathToFileURL(join(root, 'dist/index.mjs')).href)
+  const { tools } = await loadBundle(pathToFileURL(join(root, 'dist/index.mjs')).href)
   const puppeteer = (await import('puppeteer-core')).default
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-preview-geometry-'))
   let browser

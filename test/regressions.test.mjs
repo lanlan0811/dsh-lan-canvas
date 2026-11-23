@@ -11,10 +11,10 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { after, before, describe, test } from 'node:test'
-import { loadPlugin, testCredential } from './helpers/host.mjs'
+import { loadBundle, testCredential } from './helpers/dsh.mjs'
 
 const root = resolve(import.meta.dirname, '..')
-const { tools } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
+const { tools } = await loadBundle(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
 
 const MAX_BODY = 4 * 1024 * 1024
 const MAX_VIEWPORT_BODY = 4096

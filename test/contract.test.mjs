@@ -1,79 +1,86 @@
 /**
- * 契约测试：清单合法性 + 握手（名称与描述）一致 + 返回形状。
- * 断言的是**构建产物** dist/index.mjs（CI 先 build），而非源码。
- * 描述必须与清单逐字一致：官方套件（sample.test.mjs）按 { name, description } 深比较。
+ * 契约测试：DSH bundle 的激活契约。
+ *
+ * 断言的是**构建产物** dist/index.mjs（CI 先 build），而非源码：
+ *  - 导出 `apply(ctx, config)` 与 `inject`（tools / workingDirectory 为硬依赖）；
+ *  - 恰好注册 9 个 `dsh_canvas_*` 工具，参数 schema 原样保留、output 可渲染；
+ *  - 注册 `dsh-canvas` 技能与 4 条 owner-only 路由；
+ *  - config 非法时激活失败（Plugins 页可见）。
  */
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { loadPlugin, TPI_BRAND } from './helpers/host.mjs'
+import { loadBundle } from './helpers/dsh.mjs'
 
 const root = resolve(import.meta.dirname, '..')
-const manifest = JSON.parse(readFileSync(join(root, 'tianshu.plugin.json'), 'utf8'))
+const entry = pathToFileURL(join(root, 'dist', 'index.mjs')).href
 
-// ---- 清单合法性（镜像 zod .strict() 的关键约束）----
-assert.equal(manifest.$tpi, '1.0', '$tpi 必须是 1.0')
-assert.equal(manifest.kind, 'tianshu.plugin', 'kind 必须是 tianshu.plugin')
-assert.match(manifest.id, /^[A-Za-z0-9][A-Za-z0-9._-]*$/, 'id 不合法')
-assert.ok(typeof manifest.displayName === 'string' && manifest.displayName.length >= 1, 'displayName 必填')
-assert.ok(typeof manifest.version === 'string' && /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(manifest.version), 'version 必须是稳定 SemVer')
-assert.ok(typeof manifest.description === 'string' && manifest.description.length >= 1, 'description 必填')
-assert.equal(manifest.entry, 'dist/index.mjs', 'entry 必须指向构建产物')
-assert.ok(Array.isArray(manifest.capabilities) && manifest.capabilities.includes('tools'), 'capabilities 必须含 tools')
-// 官方打包器硬要求：没有 engines.tianshu 直接拒绝打包。
-assert.ok(typeof manifest.engines?.tianshu === 'string' && manifest.engines.tianshu.length > 0, 'engines.tianshu 必须声明')
-assert.deepEqual(Object.keys(manifest.permissions).sort(), ['fs', 'net', 'shell'], '权限只声明 fs/net/shell')
-assert.equal(manifest.permissions.shell, true, '会启动浏览器/子进程，shell 权限必须如实声明')
+const TOOL_NAMES = [
+  'dsh_canvas_open',
+  'dsh_canvas_upsert_page',
+  'dsh_canvas_get_state',
+  'dsh_canvas_arrange',
+  'dsh_canvas_style',
+  'dsh_canvas_check_style',
+  'dsh_canvas_design_system',
+  'dsh_canvas_audit',
+  'dsh_canvas_comments',
+]
 
-const declaredTools = manifest.contributes.tools.map((t) => t.name)
-for (const t of manifest.contributes.tools) {
-  assert.match(t.name, /^[a-z][a-z0-9_]*$/, `工具名必须是 snake_case: ${t.name}`)
-  assert.ok(typeof t.description === 'string' && t.description.length >= 1, `工具缺少 description: ${t.name}`)
-  assert.ok([...t.description].length <= 200, `工具描述不得超过 200 字: ${t.name}（${[...t.description].length}）`)
+const ROUTES = [
+  '/dsh-canvas/launch',
+  '/dsh-canvas/styles',
+  '/dsh-canvas/design-mode',
+  '/dsh-canvas/design-state',
+]
+
+const { def, api, harness } = await loadBundle(entry)
+
+// ---- 导出形状 ----
+assert.equal(typeof def.apply, 'function', '入口必须导出 apply(ctx, config)')
+assert.ok(Array.isArray(def.inject), '入口必须导出 inject 数组')
+assert.ok(def.inject.includes('tools'), 'inject 必须声明 tools')
+assert.ok(def.inject.includes('workingDirectory'), 'inject 必须声明 workingDirectory')
+
+// ---- 9 个工具 ----
+const activated = api.tools.map((tool) => tool.name).sort()
+assert.deepEqual(activated, [...TOOL_NAMES].sort(), `工具集合不一致: ${activated.join(', ')}`)
+for (const tool of api.tools) {
+  assert.ok(typeof tool.description === 'string' && tool.description.length > 0, `工具缺少 description: ${tool.name}`)
+  assert.ok([...tool.description].length <= 400, `工具描述过长: ${tool.name}`)
+  assert.equal(tool.inputSchema?.type, 'object', `工具参数必须是 object schema: ${tool.name}`)
+  assert.equal(tool.inputSchema?.additionalProperties, false, `工具参数应拒绝额外字段: ${tool.name}`)
+  assert.ok(Number.isInteger(tool.timeoutMs) && tool.timeoutMs > 0, `工具必须有正整数 timeoutMs: ${tool.name}`)
 }
-assert.equal(new Set(declaredTools).size, declaredTools.length, '工具名重复')
-for (const skill of manifest.contributes.skills ?? []) {
-  assert.ok(readFileSync(join(root, skill, 'SKILL.md'), 'utf8').length > 0, `声明的 skill 必须有 SKILL.md: ${skill}`)
+// 参数 schema 保留枚举/oneOf 等关键字（不做有损转换）
+const arrange = api.tools.find((tool) => tool.name === 'dsh_canvas_arrange')
+assert.deepEqual(arrange.inputSchema.properties.action.enum, ['remove', 'duplicate', 'link', 'unlink'])
+
+// ---- 技能 ----
+const skill = harness.skills.find((item) => item.name === 'dsh-canvas')
+assert.ok(skill, '必须注册 dsh-canvas 技能')
+assert.ok(skill.description.length > 0, '技能必须有 description')
+assert.ok(skill.content.length > 0, '技能必须有正文')
+assert.doesNotMatch(skill.content, /^---/m, '技能正文不应包含 frontmatter')
+assert.equal(skill.resourceBase?.kind, 'directory', '技能应声明资源目录')
+
+// ---- 路由 ----
+assert.deepEqual([...harness.routes.keys()].sort(), [...ROUTES].sort(), '必须注册 4 条路由')
+
+// ---- config 校验 ----
+for (const [config, pattern] of [
+  [{ port: 80 }, /port/],
+  [{ port: 70000 }, /port/],
+  [{ openBrowser: 'always' }, /openBrowser/],
+  [{ unexpected: true }, /未知的 config 字段/],
+]) {
+  await assert.rejects(() => loadBundle(entry, { config }), pattern, `config 非法值必须激活失败: ${JSON.stringify(config)}`)
 }
 
-// ---- 入口品牌 + id 一致 + 握手 ----
-const { def, api } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
-assert.ok(def[TPI_BRAND], '入口不是 TPI 定义')
-assert.equal(def.id, manifest.id, 'defineTianshuPlugin.id 与 manifest.id 不一致')
+// 合法配置可激活
+const { api: second } = await loadBundle(entry, { config: { port: 43217, openBrowser: 'never' } })
+assert.equal(second.tools.length, 9)
+await second.dispose()
+await api.dispose()
 
-const declared = [...declaredTools].sort()
-const activated = (api.tools ?? []).map((t) => t.name).sort()
-assert.deepEqual(activated, declared, `握手失败: declared=${declared} activated=${activated}`)
-
-// 官方套件按 { name, description } 深比较：描述必须逐字一致。
-assert.deepEqual(
-  api.tools.map(({ name, description }) => ({ name, description })),
-  manifest.contributes.tools.map(({ name, description }) => ({ name, description })),
-  '运行时工具描述必须与清单完全一致',
-)
-
-// ---- 工具对象形状 ----
-for (const t of api.tools) {
-  assert.ok(typeof t.name === 'string', 'tool.name 缺失')
-  assert.ok(typeof t.description === 'string', `tool.description 缺失: ${t.name}`)
-  assert.ok(t.inputSchema && typeof t.inputSchema === 'object', `tool.inputSchema 缺失: ${t.name}`)
-  assert.equal(typeof t.execute, 'function', `tool.execute 缺失: ${t.name}`)
-  assert.ok(['true', 'false'].includes(String(t.concurrencySafe)), `concurrencySafe 必须是布尔: ${t.name}`)
-  assert.ok(Number.isInteger(t.timeoutMs) && t.timeoutMs > 0, `timeoutMs 必须是正整数: ${t.name}`)
-  assert.equal(t.inputSchema.additionalProperties, false, `inputSchema 应拒绝额外参数: ${t.name}`)
-  // pathParams 只能指向真实存在的参数；路径类参数必须声明访问模式。
-  const props = t.inputSchema.properties ?? {}
-  for (const [param, mode] of Object.entries(t.pathParams ?? {})) {
-    assert.ok(['read', 'write'].includes(mode), `pathParams.${param} 必须是 read/write: ${t.name}`)
-    assert.ok(Object.hasOwn(props, param), `pathParams 声明了不存在的参数 ${param}: ${t.name}`)
-  }
-  for (const param of Object.keys(props)) {
-    if (/^(?:.*_path|path|file|file_path|out_dir|dir)$/.test(param)) {
-      assert.ok(Object.hasOwn(t.pathParams ?? {}, param), `路径参数未声明访问模式: ${t.name}.${param}`)
-    }
-  }
-}
-
-console.log(`OK 契约: ${declared.length} 个工具握手一致（名称 + 描述）-> ${activated.join(', ')}`)
-
+console.log(`OK 契约: ${activated.length} 个工具 + 技能 + ${ROUTES.length} 条路由`)

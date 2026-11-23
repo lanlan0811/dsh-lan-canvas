@@ -8,20 +8,17 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test from 'node:test'
-import { loadPlugin } from './helpers/host.mjs'
+import { loadBundle } from './helpers/dsh.mjs'
 
 const cwd = mkdtempSync(join(tmpdir(), 'tsc-spawn-'))
 // 浏览器候选路径在模块加载时读取，必须先设置。指向目录：存在，但无法执行。
 const notABrowser = join(cwd, 'not-a-browser')
 mkdirSync(notABrowser)
-process.env.TIANSHU_CANVAS_BROWSER = notABrowser
+process.env.DSH_CANVAS_BROWSER = notABrowser
 
 const root = resolve(import.meta.dirname, '..')
-const { tools } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
-const mod = await import(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
-const diagnostics = []
-const diagnosticInstance = mod.default.activate({ log: { debug() {}, warn(message) { diagnostics.push(message) } } })
-test.after(() => diagnosticInstance.dispose())
+const { tools, harness } = await loadBundle(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
+const diagnostics = harness.warnings
 
 test.after(() => rmSync(cwd, { recursive: true, force: true }))
 

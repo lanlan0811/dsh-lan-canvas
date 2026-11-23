@@ -11,7 +11,7 @@ import { build } from 'esbuild'
 const root = resolve(import.meta.dirname, '..')
 const apiDir = mkdtempSync(join(tmpdir(), 'tsc-async-api-'))
 await build({
-  stdin: { contents: "export { tools } from './src/tools.ts'; export * from './src/project.ts'; export { shutdownForTests } from './src/server.ts'; export { setHostServices } from './src/host.ts';", resolveDir: root },
+  stdin: { contents: "export { tools } from './src/tools.ts'; export * from './src/project.ts'; export { shutdownForTests } from './src/server.ts'; export { setHostLogger } from './src/host.ts';", resolveDir: root },
   outfile: join(apiDir, 'api.mjs'), bundle: true, platform: 'node', format: 'esm', target: 'node24', logLevel: 'silent',
   banner: { js: "import { createRequire as __capacityCreateRequire } from 'node:module'; const require = __capacityCreateRequire(import.meta.url);" },
   plugins: [{
@@ -28,7 +28,7 @@ await build({
 cpSync(join(root, 'dist/design'), join(apiDir, 'design'), { recursive: true })
 cpSync(join(root, 'dist/web'), join(apiDir, 'web'), { recursive: true })
 const api = await import(pathToFileURL(join(apiDir, 'api.mjs')).href)
-api.setHostServices({ isWorker: false, log: { debug() {}, warn() {} } })
+api.setHostLogger({ debug() {}, warn() {} })
 const tools = Object.fromEntries(api.tools.map(tool => [tool.definition.name, tool]))
 after(async () => { delete globalThis.__tianshuCapacityFetch; await api.shutdownForTests(); rmSync(apiDir, { recursive: true, force: true }) })
 
