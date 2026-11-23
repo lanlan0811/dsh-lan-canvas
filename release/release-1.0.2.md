@@ -17,6 +17,7 @@
   `postMessage({type:'dsh-canvas:relaunch'})` 请主面板重新走 `/dsh-canvas/launch`
   换新凭证（限速、每次加载最多 3 次）。
 - 刷新文档时 fragment 已移除，改从 `sessionStorage` 恢复凭证。
+- 画布外壳与静态资源加 `Cache-Control: no-store`：升级 bundle 后不会继续运行浏览器缓存的旧前端。
 
 ## 验收
 

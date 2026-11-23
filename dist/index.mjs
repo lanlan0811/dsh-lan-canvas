@@ -66702,7 +66702,13 @@ function isLocalHost(host) {
 function serveStatic(res, name, type = "text/html; charset=utf-8") {
   const file = join11(WEB_DIR, name);
   if (!existsSync6(file)) return send(res, 404, "text/plain; charset=utf-8", "asset not built");
-  const headers = { "Content-Type": type, "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" };
+  const headers = {
+    "Content-Type": type,
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    // 画布前端随插件升级；本地静态资源不缓存，避免升级后仍跑旧 canvas.js。
+    "Cache-Control": "no-store"
+  };
   if (name === "index.html") {
     headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'";
   }
