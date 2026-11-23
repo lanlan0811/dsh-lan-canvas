@@ -16,7 +16,7 @@
   `dsh_canvas_open/upsert_page/get_state/check_style` 在真实 DSH 中写入/读取 `.dsh-canvas/` 通过。
 - Client：左侧栏「画布」、主面板画布（工具条 + iframe + 悬浮球）、输入框「设计」chip
   在运行中的 DSH 客户端槽位里均为 active；组件用真实 `dist/client.js` 渲染并截图核对。
-- `npm run verify` 全绿（300 个测试，浏览器 E2E 使用真实 Edge，0 skip）；
+- `npm run verify` 全绿（302 个测试，浏览器 E2E 使用真实 Edge，0 skip）；
   `npm run verify:prototypes` 38/38 通过；`npm run check:bundle` 通过。
 - CI main 全绿后发布本版本。
 
