@@ -70242,9 +70242,7 @@ var tools = [
       }
     },
     pathParams: {},
-    requiresApproval: () => false,
     isConcurrencySafe: () => false,
-    isEnabled: () => true,
     timeoutMs: 3e4,
     execute: withBackupNotice(canvasOpen)
   },
@@ -70286,9 +70284,7 @@ var tools = [
       }
     },
     pathParams: { html_path: "read" },
-    requiresApproval: () => false,
     isConcurrencySafe: () => false,
-    isEnabled: () => true,
     timeoutMs: 18e4,
     execute: withBackupNotice(canvasUpsertPage)
   },
@@ -70299,9 +70295,7 @@ var tools = [
       input_schema: { type: "object", properties: {}, required: [], additionalProperties: false }
     },
     pathParams: {},
-    requiresApproval: () => false,
     isConcurrencySafe: () => true,
-    isEnabled: () => true,
     timeoutMs: 3e4,
     execute: withBackupNotice(canvasGetState)
   },
@@ -70328,9 +70322,7 @@ var tools = [
       }
     },
     pathParams: {},
-    requiresApproval: () => false,
     isConcurrencySafe: () => false,
-    isEnabled: () => true,
     timeoutMs: 6e4,
     execute: withBackupNotice(canvasArrange)
   },
@@ -70400,9 +70392,7 @@ var tools = [
       }
     },
     pathParams: { out_dir: "write" },
-    requiresApproval: () => false,
     isConcurrencySafe: () => false,
-    isEnabled: () => true,
     timeoutMs: 12e4,
     execute: withBackupNotice(canvasStyle)
   },
@@ -70425,9 +70415,7 @@ var tools = [
       }
     },
     pathParams: {},
-    requiresApproval: () => false,
     isConcurrencySafe: () => true,
-    isEnabled: () => true,
     timeoutMs: 6e4,
     execute: withBackupNotice(canvasCheckStyle)
   },
@@ -70495,9 +70483,7 @@ var tools = [
       }
     },
     pathParams: { path: "read", source_path: "read", pack_path: "read", out_dir: "write" },
-    requiresApproval: () => false,
     isConcurrencySafe: () => false,
-    isEnabled: () => true,
     timeoutMs: 12e4,
     execute: withBackupNotice(canvasDesignSystem)
   },
@@ -70535,9 +70521,7 @@ var tools = [
       }
     },
     pathParams: { out_dir: "write", baseline_dir: "write" },
-    requiresApproval: () => false,
     isConcurrencySafe: () => false,
-    isEnabled: () => true,
     timeoutMs: 3e5,
     execute: withBackupNotice(canvasAudit)
   },
@@ -70558,9 +70542,7 @@ var tools = [
       }
     },
     pathParams: {},
-    requiresApproval: () => false,
     isConcurrencySafe: () => false,
-    isEnabled: () => true,
     timeoutMs: 6e4,
     execute: withBackupNotice(canvasComments)
   }
