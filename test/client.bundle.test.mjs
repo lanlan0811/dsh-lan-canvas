@@ -18,7 +18,7 @@ function loadClient() {
   window.__ModuleLoader__ = { load(spec) { id = spec.id; factory = spec.factory } }
   // eslint-disable-next-line no-new-func
   new Function('window', source)(window)
-  assert.equal(id, 'dsh-canvas', '工厂 id 必须是包名 dsh-canvas')
+  assert.equal(id, 'dsh-canvas', '工厂 id 保持内部标识 dsh-canvas（与 npm 包名解耦）')
   const plugin = factory((name) => {
     if (name === 'react') return React
     throw new Error(`客户端只允许 require('react')，实际 require(${name})`)

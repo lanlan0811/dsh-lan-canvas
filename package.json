@@ -1,10 +1,20 @@
 {
-  "name": "dsh-canvas",
-  "version": "1.0.3",
-  "description": "无限画布设计工作台：9 个 dsh_canvas_* 工具、dsh-canvas 技能、主面板画布与 /design 设计模式",
+  "name": "dsh-lan-canvas",
+  "version": "1.1.0",
+  "description": "dsh-lan-canvas：由 Tianshu-Canvas 移植的 DSH 无限画布设计工作台（9 个 dsh_canvas_* 工具、dsh-canvas 技能、主面板画布与 /design 设计模式）",
   "license": "Apache-2.0",
-  "private": true,
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanlan0811/dsh-lan-canvas.git"
+  },
+  "homepage": "https://github.com/lanlan0811/dsh-lan-canvas#readme",
+  "bugs": {
+    "url": "https://github.com/lanlan0811/dsh-lan-canvas/issues"
+  },
   "engines": {
     "node": ">=24.22.1 <27"
   },

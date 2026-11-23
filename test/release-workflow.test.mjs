@@ -24,7 +24,7 @@ test('发布事件仅接受固定仓库稳定 tag push，引用和 SHA 必须有
 function withReleaseFixture(run) {
   const directory = mkdtempSync(join(tmpdir(), 'tsc-release-gate-'))
   try {
-    writeFileSync(join(directory, 'package.json'), JSON.stringify({ name: 'dsh-canvas', version: '1.2.3', dsh: { bundle: { patch: './cordis.patch.yml' } } }))
+    writeFileSync(join(directory, 'package.json'), JSON.stringify({ name: 'dsh-lan-canvas', version: '1.2.3', publishConfig: { access: 'public' }, dsh: { bundle: { patch: './cordis.patch.yml' } } }))
     writeFileSync(join(directory, 'package-lock.json'), JSON.stringify({ version: '1.2.3', packages: { '': { version: '1.2.3' } } }))
     mkdirSync(join(directory, 'release'))
     writeFileSync(join(directory, 'release/release-1.2.3.md'), '# v1.2.3\n修复与验收详情。\n')
@@ -183,7 +183,7 @@ test('Release 工作流在创建 Release 前复核 main CI 并执行完整门禁
     'npm run notices', 'git status --porcelain -- dist', 'THIRD-PARTY-NOTICES.md',
     'DSH_CANVAS_REQUIRE_BROWSER=1', 'npm test', 'npm run verify:codegen', 'npm run check:bundle',
     'npm run check:pack', 'npm run verify:prototypes', 'test -s', 'gh release create',
-    'gh release upload',
+    'gh release upload', 'npm publish --access public',
   ]
   let previous = -1
   for (const command of required) {
@@ -199,6 +199,7 @@ test('Release 工作流在创建 Release 前复核 main CI 并执行完整门禁
   assert.ok(workflow.includes('.tmp/release-assets/*.tgz'), 'Release 必须上传可安装 tarball 资产')
   assert.equal(workflow.match(/node scripts.check-release-ci.mjs/g)?.length, 2, '发布创建前必须再次复核 CI，不能只检查验收开始时的状态')
   assert.equal(workflow.match(/git fetch --no-tags origin refs.heads.main:refs.remotes.origin.main/g)?.length, 2, '创建 Release 前必须重新确认当前 main 历史')
+  assert.ok(workflow.includes('secrets.NPM_TOKEN'), 'npm 发布必须使用仓库 secrets 的 NPM_TOKEN')
 })
 
 test('main CI requires full original-composition evidence before release eligibility', () => {

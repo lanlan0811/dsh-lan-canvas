@@ -1,8 +1,12 @@
-# 画布（dsh-canvas）
+# 画布（dsh-lan-canvas）
 
 无限画布设计工作台。把前端原型写入一块可平移缩放的画布，锁定项目级设计风格，
 在 DSH 主面板里查看与迭代；支持 `/design` 设计模式、元素批注、设计审计、
 PNG/ZIP 导出与生产代码生成。
+
+由 **Tianshu-Canvas**（`tianshu-canvas@0.9.5`，天枢 TPI 插件）移植为 DSH bundle。
+项目/npm 包名是 `dsh-lan-canvas`（npm 同名）；客户端 bundle id、
+面板 key、`/dsh-canvas/*` 路由、`dsh_canvas_*` 工具与 `dsh-canvas` 技能名是内部稳定标识。
 
 ## 安装后你会看到
 

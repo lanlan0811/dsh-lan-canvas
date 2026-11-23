@@ -118,3 +118,16 @@ jobs:
           npm pack --pack-destination .tmp/release-assets --ignore-scripts
           gh release upload "$GITHUB_REF_NAME" .tmp/release-assets/*.tgz \
             --repo "$GITHUB_REPOSITORY" --clobber
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          # 版本已存在时跳过（允许本地先发布/重跑 workflow 不重复打版本）。
+          version=$(node -p "require('./package.json').version")
+          if npm view "dsh-lan-canvas@$version" version >/dev/null 2>&1; then
+            echo "dsh-lan-canvas@$version 已发布，跳过 npm publish"
+            exit 0
+          fi
+          test -n "$NODE_AUTH_TOKEN" || { echo "缺少 NPM_TOKEN，无法发布 npm 包"; exit 1; }
+          npm publish --access public --ignore-scripts

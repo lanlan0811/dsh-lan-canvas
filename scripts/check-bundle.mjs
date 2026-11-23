@@ -20,6 +20,7 @@ import { pathToFileURL } from 'node:url'
 import { loadBundle } from '../test/helpers/dsh.mjs'
 
 const root = resolve(import.meta.dirname, '..')
+const PACKAGE_NAME = 'dsh-lan-canvas'
 const errors = []
 const fail = (message) => errors.push(message)
 
@@ -45,7 +46,7 @@ function readJson(path) {
 const pkgPath = join(root, 'package.json')
 const pkg = readJson(pkgPath)
 if (pkg) {
-  if (pkg.name !== 'dsh-canvas') fail(`package.json name 必须是 dsh-canvas（当前 ${String(pkg.name)}）`)
+  if (pkg.name !== PACKAGE_NAME) fail(`package.json name 必须是 ${PACKAGE_NAME}（当前 ${String(pkg.name)}）`)
   if (!/^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/.test(String(pkg.version ?? ''))) {
     fail(`package.json version 必须是稳定 SemVer（当前 ${String(pkg.version)}）`)
   }
@@ -72,7 +73,9 @@ if (!existsSync(patchPath)) {
   const text = readFileSync(patchPath, 'utf8').replace(/\r\n/g, '\n')
   if (!/^- insert:\s*$/m.test(text)) fail('cordis.patch.yml 必须包含顶层 "- insert:" 列表')
   const id = /^\s+- id:\s*(\S+)\s*$/m.exec(text)?.[1]
-  const name = /^\s+name:\s*(\S+)\s*$/m.exec(text)?.[1]
+  // scoped 包名以 @ 开头，YAML 里必须加引号；比较前去掉引号。
+  const nameMatch = /^\s+name:\s*(?:"([^"]+)"|'([^']+)'|(\S+))\s*$/m.exec(text)
+  const name = nameMatch?.[1] ?? nameMatch?.[2] ?? nameMatch?.[3]
   if (!id) fail('cordis.patch.yml 插入行缺少 id')
   if (!name) fail('cordis.patch.yml 插入行缺少 name')
   if (id && id !== 'dsh-canvas') fail(`cordis.patch.yml 插入行 id 必须是 dsh-canvas（当前 ${id}）`)

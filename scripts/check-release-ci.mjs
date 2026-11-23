@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url'
 
 const REPOSITORY = 'lanlan0811/dsh-lan-canvas'
 const root = resolve(import.meta.dirname, '..')
+const PACKAGE_NAME = 'dsh-lan-canvas'
 
 export function releaseContext(env) {
   if (env.GITHUB_REPOSITORY !== REPOSITORY || env.GITHUB_EVENT_NAME !== 'push' || env.GITHUB_REF_TYPE !== 'tag') {
@@ -33,7 +34,9 @@ export function validateReleaseFiles(directory, tag) {
   ]) {
     if (value !== version) throw new Error(`${name} 版本必须与 ${tag} 一致`)
   }
-  if (pkg.name !== 'dsh-canvas') throw new Error('package.json name 必须是 dsh-canvas')
+  if (pkg.name !== PACKAGE_NAME) throw new Error(`package.json name 必须是 ${PACKAGE_NAME}`)
+  if (pkg.private === true) throw new Error('发布包不能是 private')
+  if (pkg.publishConfig?.access !== 'public') throw new Error('package.json 必须声明 publishConfig.access = public')
   if (pkg.dsh?.bundle?.patch !== './cordis.patch.yml') throw new Error('package.json 缺少 dsh.bundle.patch')
   const notes = join(directory, 'release', `release-${version}.md`)
   let contents

@@ -7,9 +7,19 @@
  * 写错或漏掉 dotfile 时，这里会先失败，而不是等用户安装后才看到 overlay 缺失。
  */
 import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const root = resolve(import.meta.dirname, '..')
+const pkg = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'))
+if (pkg.private === true) {
+  console.error('check-pack: 发布包不能是 private')
+  process.exitCode = 1
+}
+if (pkg.publishConfig?.access !== 'public') {
+  console.error('check-pack: 必须声明 publishConfig.access = public')
+  process.exitCode = 1
+}
 
 /** 缺一个就会让 DSH 安装/激活失败（或详情页缺失）的文件。 */
 const REQUIRED = [
@@ -48,8 +58,19 @@ try {
 
 if (Array.isArray(packed) && packed.length > 0) {
   const entry = packed[0]
+  if (entry.name !== pkg.name) {
+    console.error(`check-pack: 打包名 ${String(entry.name)} 与 package.json 的 ${String(pkg.name)} 不一致`)
+    process.exitCode = 1
+  }
   const files = new Set((entry.files ?? []).map((file) => String(file.path).replaceAll('\\', '/')))
   const missing = REQUIRED.filter((file) => !files.has(file))
+  // 发行包不携带 sourcemap：体积小、不泄露源码结构；构建脚本显式 sourcemap:false。
+  const maps = [...files].filter((file) => file.endsWith('.map'))
+  if (maps.length > 0) {
+    console.error(`check-pack: 发行包不得包含 .map 文件（${maps.length} 个）：`)
+    for (const file of maps) console.error(`  - ${file}`)
+    process.exitCode = 1
+  }
   if (missing.length > 0) {
     console.error(`check-pack: 发行包缺少必需文件（${missing.length} 个）：`)
     for (const file of missing) console.error(`  - ${file}`)

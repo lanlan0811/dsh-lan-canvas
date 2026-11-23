@@ -1,46 +1,94 @@
-# dsh-canvas
+# dsh-lan-canvas · DeepSeek Harness 无限画布设计工作台
 
-无限画布设计工作台，作为 **DeepSeek Harness（DSH）bundle** 分发。
+**项目名：dsh-lan-canvas** ｜ **npm 包名：`dsh-lan-canvas`**
 
-把前端原型写入一块可平移缩放的画布，锁定项目级设计风格，在 DSH 主面板里查看与迭代；
-支持 `/design` 设计模式、元素批注、设计审计、PNG/ZIP 导出与生产代码生成。
+这是一个把「无限画布 + 前端原型 + 设计风格 + 审计」搬进 DeepSeek Harness 主面板的 bundle：代理用 9 个 `dsh_canvas_*` 工具往画布上写页面，人在画布里浏览、批注、预览、导出，用 `/design` 锁定一套设计风格后再让代理生成。
 
-- Host 半：9 个 `dsh_canvas_*` 工具、`dsh-canvas` 技能、4 条 owner-only 路由、设计模式状态；
-- Client 半：左侧栏「画布」入口、主面板画布（工具条 + iframe + 悬浮球）、输入框「设计」chip 与 `/design` 命令；
-- 画布 SPA：保留在独立端口的本地服务里，独立 CSP 与 puppeteer 导出链路。
+> 命名说明：项目/仓库/npm 包名统一使用 **dsh-lan-canvas**（npm 为 `dsh-lan-canvas`）。客户端 bundle id、面板 key、`/dsh-canvas/*` 路由、`dsh_canvas_*` 工具名、`dsh-canvas` 技能名与 `.dsh-canvas/` 数据目录是**内部稳定标识**，沿用旧名以便升级；它们不是项目名，也不是 npm 包名。
+
+## 与 Tianshu-Canvas 的关系
+
+**dsh-lan-canvas 由 Tianshu-Canvas 移植而来。**
+
+- 原项目：`tianshu-canvas@0.9.5`，天枢 TPI 插件；无限画布、设计风格、原型、审计、导出等设计工作台能力在那边已经成型。
+- 本项目：保留同一套设计域（画布/页面/风格/设计系统/审计/导出），把**宿主从 Tianshu TPI 换成 DeepSeek Harness（DSH）bundle**。
+- 移植后的形态：
+  - Host 侧 9 个 `dsh_canvas_*` 工具 + 一个 `dsh-canvas` 技能；
+  - Client 侧主面板 iframe 画布、左侧栏「画布」入口、输入框「设计」chip、画布悬浮球；
+  - `/design` 设计模式流水线（选风格 → 锁定工作区 → 发需求 → 自动打开画布）；
+  - 删除 TPI 运行时与旧入口，不再依赖 Tianshu 的插件 API。
+- **数据不迁移**：只读写当前工作区的 `.dsh-canvas/`，不读取旧版 Tianshu 数据目录。
+- 仓库名与 npm 包名用 `dsh-lan-canvas`，与 npm 上被他人占位的旧名 `dsh-canvas` 区分，避免装错包。
+
+## 功能
+
+- **无限画布**：React Flow 平移/缩放、页面节点、设备尺寸（desktop/tablet/mobile/free）、页面间连线。
+- **原型渲染**：每个节点内嵌 `sandbox` iframe 渲染 HTML 原型；支持元素选中、批注图钉、预览覆盖层。
+- **9 个 Host 工具**：打开/写入/读取/编排/风格/检查/设计系统/审计/批注，全部经 DSH 工具系统调用。
+- **`/design` 设计模式**：输入框 chip 或命令选择风格（内置 + 工作区自定义）；风格锁定后代理生成的内容自动套用 token 与组件样式。
+- **设计系统**：内置风格、从 HTML/CSS/URL 反抽取、从 shadcn/AntD 主题导入、导出/导入品牌包。
+- **审计**：设计契约、可访问性、视觉回归、设计漂移、多尺寸截图评审。
+- **导出与代码生成**：PNG/ZIP 导出，React/CSS/Tailwind/shadcn/AntD 及 iOS/Android/小程序规格导出。
+- **主面板与悬浮球**：画布内嵌在 DSH 主面板，不抢输入框；悬浮球显示代理运行态/待处理，一键回对话。
+
+## 环境要求
+
+- DeepSeek Harness（Desktop 或 Web），需要 Host 工具与 Web 客户端能力。
+- Node.js `>=24.22.1 <27`（见 `package.json` 的 `engines`）。
+- 导出 PNG、审计截图、原型验证需要本机 Chrome/Edge；可用 `DSH_CANVAS_BROWSER` 指定浏览器路径。
 
 ## 安装
 
-在 DSH 里安装（三选一）：
+### 推荐：npm
 
-- **推荐：按仓库 URL 安装**。**Plugins** > **Add plugin** 里填
-  `https://github.com/lanlan0811/dsh-lan-canvas`；或让代理执行
-  `plugin_manager` 的 `install_bundle`，目标为同一个 URL。
-- 下载 Release 里的 `dsh-canvas-<版本>.tgz`，用该文件路径或它的 URL 安装。
-- **Plugins** > **Add plugin** 选择本仓库的绝对目录（开发时常用）。
+在 DSH 的 **Plugins** > **Add plugin** 中填：
 
-> **不要只填 `dsh-canvas`。** npm 上存在一个同名的占位包 `dsh-canvas@0.0.1`
-> （由他人保留，只有 package.json/README，没有 `cordis.patch.yml`）。按裸包名安装会装到它，
-> 报 `failed to read overlay ... node_modules\dsh-canvas\cordis.patch.yml: ENOENT`。
-> 一旦装错：先在 Plugins 页移除该插件，再用上面的仓库 URL / tarball 重装。
+```text
+dsh-lan-canvas
+```
+
+或让代理调用 `plugin_manager` 的 `install_bundle`，`target` 为同一包名。安装的是 npm 上的 `dsh-lan-canvas`，不会再撞旧名 `dsh-canvas` 的占位包。
+
+### 仓库 URL（开发/未发布时）
+
+```text
+https://github.com/lanlan0811/dsh-lan-canvas
+```
+
+DSH 会以 git 依赖安装仓库里的 `package.json`、`cordis.patch.yml` 和已提交的 `dist/`。
+
+### Release tarball
+
+每次发布都会在 GitHub Release 附 `dsh-lan-canvas-<版本>.tgz`，可直接用资产 URL 或本地文件安装。
+
+### 本地目录（开发）
+
+**Plugins** > **Add plugin** 选择本仓库绝对目录，或 `install_bundle` 的目标填目录路径。目录安装是 link，改完代码需重启 DSH 生效。
+
+### 不要安装旧的裸包名
+
+npm 公共仓库里的 `dsh-canvas@0.0.1` 是**他人保留的占位包**（只有 `package.json`/`README.md`，没有 `cordis.patch.yml`）。本项目已迁移到 `dsh-lan-canvas`；如果只填旧名 `dsh-canvas`，DSH 会装到占位包并报：
+
+```text
+failed to read overlay ... node_modules\dsh-canvas\cordis.patch.yml: ENOENT
+```
+
+装错了先移除，再按上面的 npm 名 / 仓库 URL / tarball 重装；详细步骤见 [docs/INSTALL.md](docs/INSTALL.md)。
 
 安装后在 **Plugins** 页面确认：
 
 - 插件标题「画布」/「Canvas」与图标显示正常；
-- 详情页展示 `docs/DETAIL.md` 的内容；
-- 进入新会话，确认 9 个 `dsh_canvas_*` 工具与 `dsh-canvas` 技能出现。
-
-激活失败时先看 DSH 日志与本仓库的 `npm run check:bundle`、`npm run check:pack`；
-更完整的排查步骤见 [docs/INSTALL.md](docs/INSTALL.md)。
+- 详情页展示 [docs/DETAIL.md](docs/DETAIL.md) 的内容；
+- 新会话中出现 9 个 `dsh_canvas_*` 工具与 `dsh-canvas` 技能。
 
 ## 配置
 
-`cordis.patch.yml` 插入一行 `dsh-canvas`：
+`cordis.patch.yml` 插入一行；`id` 是内部行 key，`name` 是 npm 包名：
 
 ```yaml
 - insert:
     - id: dsh-canvas
-      name: dsh-canvas
+      name: dsh-lan-canvas
       config:
         port: 43117
         openBrowser: never
@@ -48,63 +96,112 @@
 
 | 字段 | 含义 | 取值 |
 |---|---|---|
-| `port` | 画布服务优先端口 | 1024–65535，默认 43117；占用时自动递增/回退随机端口 |
+| `port` | 画布服务优先端口 | 1024–65535，默认 43117；被占用时自动递增/回退随机端口 |
 | `openBrowser` | 打开画布时是否拉起系统浏览器 | `never`（默认，主面板 iframe）或 `system` |
 
 非法配置会让插件激活失败并在 Plugins 页显示原因。
 
-## 设计模式
-
-1. 输入 `/design` 回车（或点输入框左侧「设计」chip），选「自由探索」或一套风格；
-2. 选中后 chip 显示「设计 · 风格名」，风格锁定到工作区 `.dsh-canvas/project.json`；
-3. 发送需求后画布面板自动打开；
-4. 画布左下角悬浮球显示代理运行态/待处理，点击回到对话。
-
-关闭：chip 菜单里的「退出设计模式」，或画布工具条的「退出设计模式」。
-
 ## 工具
 
-`dsh_canvas_open`、`dsh_canvas_upsert_page`、`dsh_canvas_get_state`、`dsh_canvas_arrange`、
-`dsh_canvas_style`、`dsh_canvas_check_style`、`dsh_canvas_design_system`、`dsh_canvas_audit`、
-`dsh_canvas_comments`。参数与用法见 `docs/DETAIL.md` 与 `skills/SKILL.md`。
+| 工具 | 作用 |
+|---|---|
+| `dsh_canvas_open` | 启动/复用画布服务，返回带凭证的 URL（主面板已内嵌，提示用户点左侧栏「画布」） |
+| `dsh_canvas_upsert_page` | 新增/更新页面节点与 HTML 原型 |
+| `dsh_canvas_get_state` | 读取项目、节点、连线、风格、选中项与画布 URL |
+| `dsh_canvas_arrange` | 删除/复制页面节点、添加/取消页面连线 |
+| `dsh_canvas_style` | 列出/读取/锁定设计风格；`free` 表示不锁定 |
+| `dsh_canvas_check_style` | 只读检查页面是否符合当前风格 |
+| `dsh_canvas_design_system` | 设计系统创建/反抽取/导入/导出/删除 |
+| `dsh_canvas_audit` | 设计契约、可访问性、视觉基线/回归/漂移、多尺寸截图评审 |
+| `dsh_canvas_comments` | 画布批注：列出/解决/重开/删除 |
 
-## 数据与安全
+工具名是 API 稳定标识，不随 npm 包名变化；参数/返回结构以 Host 注册的 schema 为准。所有路径参数受工作区边界约束。
 
-- 只读写工作区的 `.dsh-canvas/`；不读旧版 Tianshu 数据目录。
-- 画布服务只绑定 `127.0.0.1`；画布 URL 的凭证只经 fragment 交付，页面用
-  `Authorization: Bearer` 访问 API（同源时也写 HttpOnly cookie），页面 iframe 的
-  GET `/page/*` 用 `secret` 查询参数；不依赖第三方 cookie。
-- `/dsh-canvas/*` 路由经 `ctx.connection` 的 Host/Origin 检查与浏览器认证，全部 owner-only。
-- 文件读写经 `src/paths.ts` 边界校验（越界、符号链接、目录联接一律拒绝）。
-- 工具错误经 `reportError` 脱敏；运行期不依赖任何 `@deepseek-ai/*` 包。
+## `/design` 设计模式
+
+1. 输入 `/design` 回车，或点输入框左侧「设计」chip；
+2. 选「自由探索」或一套风格（内置或工作区自定义）；
+3. 风格锁定到 `.dsh-canvas/project.json`，chip 显示「设计 · 风格名」；
+4. 发送需求，画布面板自动打开，代理生成的页面自动套用该风格；
+5. 画布左下角悬浮球显示代理运行态/待处理，点击回对话；
+6. 退出：chip 菜单「退出设计模式」，或画布工具条「退出设计模式」。
+
+## 数据与目录
+
+只读写当前工作区：
+
+```text
+.dsh-canvas/
+├── project.json        # 节点/连线/视口/风格
+├── pages/*.html        # 页面原型
+├── selection.json      # 当前选中
+├── url.txt             # 最近一次画布地址
+├── library/            # 工作区自定义设计系统/品牌包
+├── exports/            # PNG/ZIP/代码生成/审计截图产物
+└── audit/              # 视觉基线、漂移快照、评审报告
+```
+
+不读取旧 Tianshu 数据目录；卸载插件不会删除工作区数据。
+
+## 安全与隐私
+
+- 画布服务只绑定 `127.0.0.1`，优先端口 43117；非本机请求拒绝。
+- URL 凭证只经 fragment 交付，页面存入 `sessionStorage`，API 请求用 `Authorization: Bearer`；同源时也写 HttpOnly cookie。
+- 页面 iframe 的 `GET /page/*` 支持 `secret` 查询参数（仅此路径），响应带 `Referrer-Policy: no-referrer`；页面在 `sandbox` 中渲染，CSP 限制外链。
+- 所有工作区写入经过路径边界检查（拒绝符号链接/目录联接逃逸）。
+- 不发送遥测；不访问工作区外文件。
 
 ## 开发
 
 ```bash
 npm ci
-npm run typecheck   # Host + Client + Web 类型检查
-npm run build       # dist/index.mjs、dist/client.js、dist/web、dist/design
-npm run notices     # 重新生成 THIRD-PARTY-NOTICES.md
-npm test            # 单元 + 浏览器 E2E（需要 Chrome/Edge）
-npm run verify      # typecheck + build + notices + test
-npm run check:bundle
+npm run typecheck      # Host + Web 类型检查
+npm run build          # dist/index.mjs、dist/client.js、dist/web、dist/design
+npm test               # 全量测试（含真实浏览器 E2E）
+npm run verify         # typecheck + build + notices + test
+npm run check:bundle   # 清单/patch/locale/icon/SKILL/9 工具 + 技能 + 4 路由
+npm run check:pack     # npm pack 真实发行清单（含 cordis.patch.yml，不得含 .map）
+npm run verify:codegen # 代码生成快照
+npm run verify:prototypes  # 38 个原型真实浏览器评审
 ```
 
-浏览器 E2E 用 `DSH_CANVAS_BROWSER` 指定 Chrome/Edge 路径；CI 下设置
-`DSH_CANVAS_REQUIRE_BROWSER=1` 时缺少浏览器会直接失败（不允许跳过）。
+要求：CI 全绿；只在 `main` 分支提交；中文提交信息；发布前更新 `release/release-<版本>.md`。发布 workflow 在 GitHub Release 创建后附带 `.tgz`，并执行 `npm publish`（需要仓库 secrets 的 `NPM_TOKEN`；版本已存在则跳过）。
 
-`dist/` 与 `THIRD-PARTY-NOTICES.md` **入库**：DSH 安装 bundle 不执行构建脚本，
-CI 用 `git status --porcelain -- dist THIRD-PARTY-NOTICES.md` 必须为空来防止过期产物。
+## 目录结构
 
-## 发布
+```text
+src/
+├── dsh/            # Host bundle：apply、9 工具桥、技能、/dsh-canvas/* 路由
+├── server.ts       # 本地画布服务、认证、SSE、静态资源
+├── tools.ts        # 领域工具实现
+├── project.ts      # 项目/页面/节点/连线/选区/批注
+├── design*.ts      # 风格、设计系统、代码生成
+├── audit/          # 契约/可访问性/视觉/评审
+└── export.ts       # PNG/ZIP 导出
+client/src/         # DSH Web 客户端：主面板、侧栏入口、chip、悬浮球
+web/src/            # 画布 SPA（React Flow）
+skills/SKILL.md     # dsh-canvas 技能
+design-systems/     # 内置原型/方向/组件/图标
+scripts/            # 构建、校验、发布门禁
+test/               # 单元/契约/E2E
+```
 
-1. 更新 `package.json` 版本；
-2. 写 `release/release-<版本>.md`（不能为空）；
-3. 确保 `main` 的 CI 全绿；
-4. 打 `v<版本>` 标签推送，`release.yml` 会复核版本、发布说明与同 SHA 的 main CI，然后创建 GitHub Release。
+## 故障排查
 
-发布门禁仓库名为 `lanlan0811/dsh-lan-canvas`。
+- **安装报 `cordis.patch.yml: ENOENT`**：装到了 npm 旧名占位包。移除后改装 `dsh-lan-canvas`（或仓库 URL/tarball），见 [docs/INSTALL.md](docs/INSTALL.md)。
+- **画布显示授权错误 / `project 404`**：先刷新画布（工具条刷新或 Ctrl+F5）；仍不行重启 DSH。1.0.2+ 已支持 Bearer 与凭证失效自愈。
+- **导出/审计提示找不到浏览器**：设置 `DSH_CANVAS_BROWSER` 指向 Chrome/Edge，或安装浏览器后重试。
+- **端口被占用**：服务会自动递增/回退随机端口；也可在 `cordis.patch.yml` 改 `port`。
+- **插件激活失败**：看 DSH 日志与 `npm run check:bundle`、`npm run check:pack`。
+
+## 相关文档
+
+- [docs/INSTALL.md](docs/INSTALL.md) — 安装、恢复、自检
+- [docs/DETAIL.md](docs/DETAIL.md) — 架构、数据、安全、工具细节
+- [skills/SKILL.md](skills/SKILL.md) — 代理使用画布的技能说明
+- [release/](release/) — 版本发布说明
+- [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) — 第三方组件清单
 
 ## 许可
 
-Apache-2.0（见 `LICENSE`）。第三方组件许可见 `THIRD-PARTY-NOTICES.md`。
+Apache-2.0，见 [LICENSE](LICENSE)。第三方组件许可见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。

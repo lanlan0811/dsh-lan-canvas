@@ -3,7 +3,7 @@
 # openBrowser=never 表示只在主面板 iframe 里打开，不进系统浏览器。
 - insert:
     - id: dsh-canvas
-      name: dsh-canvas
+      name: dsh-lan-canvas
       config:
         port: 43117
         openBrowser: never
