@@ -85,7 +85,7 @@ export function apply(ctx: ClientContext): void {
                 detail: t('design.freeHint'),
                 active: response.current === null,
               },
-              ...response.styles.map((style: StyleOption): SelectOption => ({
+              ...response.styles.filter((style: StyleOption) => style.id !== 'free').map((style: StyleOption): SelectOption => ({
                 id: style.id,
                 label: style.name,
                 badge: style.builtin ? undefined : 'custom',

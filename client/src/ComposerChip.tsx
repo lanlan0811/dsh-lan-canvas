@@ -116,7 +116,8 @@ export function ComposerChip({ ctx, t, sessionId, useSessions, usePanelInfo }: P
     setLoading(true)
     void fetchStyles({ sessionId: id })
       .then((response) => {
-        setStyles(response.styles)
+        // 'free' 由菜单里的「自由探索」固定行表达；目录里即使出现也不重复。
+        setStyles(response.styles.filter((style) => style.id !== 'free'))
         setLoading(false)
       })
       .catch((err: unknown) => {
