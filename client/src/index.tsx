@@ -108,11 +108,8 @@ export function apply(ctx: ClientContext): void {
                 styleId: result.styleId,
                 styleName: result.styleName,
               })
-              try {
-                scope.layout.selectPanel(PANEL_ID)
-              } catch (err) {
-                scope.logger.debug(`dsh-canvas: 画布面板尚未注册：${String(err)}`)
-              }
+              // 不在这里切面板：用户要先在对话里发需求，Host 才会置 openRequested，
+              // 由 chip 的轮询把画布打开（计划 4.4.3）。提前切换会藏起输入框。
             } catch (err) {
               scope.logger.warn(`dsh-canvas: 开启设计模式失败：${String(err)}`)
             }
