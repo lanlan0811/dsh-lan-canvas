@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "notice": "以下为独立整理的视觉风格（style aliases），与 Apple、Google、Anthropic、Mattel 等公司及《新世纪福音战士》相关权利方无隶属或背书关系；相关商标归各自所有者。",
+  "styles": [
+    {
+      "id": "apple",
+      "name": "苹果风",
+      "tagline": "克制、留白、系统蓝",
+      "description": "大面积留白、清晰层级、系统字体、极轻阴影，适合工具与内容型产品。",
+      "tags": ["clean", "system", "light"],
+      "swatches": ["#fbfbfd", "#ffffff", "#0071e3", "#1d1d1f"]
+    },
+    {
+      "id": "google",
+      "name": "谷歌风",
+      "tagline": "明亮、秩序、4dp 网格",
+      "description": "白色底、明确的层级分割线、蓝色主操作、紧凑而规整的间距。",
+      "tags": ["material", "crisp", "light"],
+      "swatches": ["#f8f9fa", "#ffffff", "#1a73e8", "#202124"]
+    },
+    {
+      "id": "claude",
+      "name": "Claude 风",
+      "tagline": "暖纸、赭石强调、编辑感",
+      "description": "暖纸底色、衬线标题、克制的赭石强调色，适合阅读、写作与文档型界面。",
+      "tags": ["warm", "editorial", "light"],
+      "swatches": ["#faf9f5", "#f0eee6", "#c96442", "#141413"]
+    },
+    {
+      "id": "tianshu-original",
+      "name": "天枢原创",
+      "tagline": "宣纸青绿、文人清冷",
+      "description": "宣纸米白铺底，墨绿黑为字，青绿作唯一强调色，楷体标题带东方文人气。克制的圆角与极轻投影，适合内容、文档与需要静气的界面。",
+      "tags": ["oriental", "ink", "light"],
+      "swatches": ["#f5f2e9", "#fbfaf6", "#0f766e", "#1f2a26"]
+    },
+    {
+      "id": "barbie",
+      "name": "芭比风",
+      "tagline": "亮粉、圆润、编辑感",
+      "description": "亮粉与腮红色阶铺底，超大圆角与粉色投影给出柔润质感，衬线标题带编辑感，适合营销活动与内容运营看板。",
+      "tags": ["pink", "playful", "light"],
+      "swatches": ["#fffafc", "#ffffff", "#d81b60", "#310015"]
+    },
+    {
+      "id": "nerv",
+      "name": "NERV 风",
+      "tagline": "暗底、霓虹红、高技术感",
+      "description": "深灰底与近白文字构成高对比暗色界面，霓虹红作主操作与强调，等宽字体用于数据读数，适合监控台与技术型看板。",
+      "tags": ["dark", "neon", "technical"],
+      "swatches": ["#0f0f10", "#191b1e", "#ea343a", "#f4f9ff"]
+    },
+    {
+      "id": "minimalist",
+      "name": "极简风",
+      "tagline": "黑白灰、克制、纯中性",
+      "description": "纯中性黑白灰单色系统，近乎无彩的层级靠明度与细边框拉开，12px 圆角与极轻分层投影，适合工具、文档与数据密集界面。",
+      "tags": ["monochrome", "minimal", "light"],
+      "swatches": ["#fafafa", "#ffffff", "#18181b", "#71717a"]
+    },
+    {
+      "id": "tianshu-inkstone",
+      "name": "天枢·砚",
+      "tagline": "石墨纸、朱砂印",
+      "description": "冷灰纸面托底，石墨黑作正文，朱砂红只出现在主操作与关键标记上；小圆角、衬线标题、极轻投影，像在纸上落印。适合文档、审阅、内容型后台与需要克制强调的界面。",
+      "tags": ["paper", "cinnabar", "editorial"],
+      "swatches": ["#f4f1ea", "#ffffff", "#a63a22", "#211d17"]
+    },
+    {
+      "id": "tianshu-vapor",
+      "name": "天枢·雾",
+      "tagline": "雾蓝底、靛紫操作",
+      "description": "雾蓝灰作底、靛紫作主操作，大圆角与柔和投影带来空气感；标题用无衬线大字距，数据用等宽字体。适合协作工具、AI 助手界面与需要轻盈层级的现代后台。",
+      "tags": ["mist", "indigo", "soft"],
+      "swatches": ["#eef1f4", "#ffffff", "#4453a8", "#1b2430"]
+    },
+    {
+      "id": "tianshu-saffron",
+      "name": "天枢·麦",
+      "tagline": "麦纸底、藏红花强调",
+      "description": "麦纸色铺底、暖褐字色，藏红花橙作唯一强强调；中等圆角与衬线标题带来手工印刷的温度。适合内容社区、阅读产品、活动页与需要亲和力的运营后台。",
+      "tags": ["wheat", "saffron", "warm"],
+      "swatches": ["#fbf5e9", "#ffffff", "#a35f08", "#33281a"]
+    },
+    {
+      "id": "tianshu-aurora",
+      "name": "天枢·霞光",
+      "tagline": "岚蓝底、樱粉点缀",
+      "description": "浅蓝紫铺底、白卡片托起内容，柔和蓝作主操作、樱粉作点缀；大圆角与彩色柔光投影带来通透感，标题用几何无衬线字体、正文行距宽松。适合个人主页、作品集与轻营销落地页。",
+      "tags": ["aurora", "periwinkle", "soft"],
+      "swatches": ["#f2f4ff", "#ffffff", "#4a6fd8", "#f77daa"]
+    }
+  ]
+}

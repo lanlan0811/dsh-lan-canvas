@@ -1,0 +1,105 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Verify release source and successful main CI
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          node scripts/check-release-ci.mjs
+
+      # 相同 SHA 的 main CI 成功后，重新执行与 CI 一致的完整门禁。
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify committed dist is up to date
+        run: git diff --exit-code -- dist
+
+      - name: Verify third-party notices are up to date
+        run: |
+          npm run notices
+          git diff --exit-code -- THIRD-PARTY-NOTICES.md
+
+      - name: Require a browser for E2E
+        shell: bash
+        run: |
+          browser_path=""
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if browser_path="$(command -v "$candidate")" && [ -x "$browser_path" ]; then
+              break
+            fi
+          done
+          if [ -z "$browser_path" ] || [ ! -x "$browser_path" ]; then
+            echo "::error::发布验收必须提供可用 Chrome/Chromium，浏览器 E2E 不允许跳过。"
+            exit 1
+          fi
+          "$browser_path" --version
+          echo "TIANSHU_CANVAS_BROWSER=$browser_path" >> "$GITHUB_ENV"
+          echo "TIANSHU_CANVAS_REQUIRE_BROWSER=1" >> "$GITHUB_ENV"
+
+      - name: Test
+        run: npm test
+
+      - name: Verify codegen compiles (adapter stubs)
+        run: npm run verify:codegen
+
+      - name: Plugin release self-check
+        run: npm run check:plugin
+
+      - name: Verify all original compositions
+        run: npm run verify:prototypes -- --out .tmp/release-prototypes
+
+      - name: Retain composition review evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prototype-review-${{ github.ref_name }}
+          path: .tmp/release-prototypes
+          include-hidden-files: true
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Collect release notes
+        run: |
+          # 门禁已校验稳定标签、版本一致性和非空发布说明，禁止回退。
+          bare="${GITHUB_REF_NAME#v}"
+          test -s "release/release-${bare}.md"
+          cp -- "release/release-${bare}.md" RELEASE_NOTES.md
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          # 完整验收耗时期间若 CI 被重跑或取消，创建发布前再次拒绝非成功状态。
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          node scripts/check-release-ci.mjs
+          gh release create "$GITHUB_REF_NAME" --verify-tag --repo "$GITHUB_REPOSITORY" \
+            --title "${GITHUB_REF_NAME}" \
+            --notes-file RELEASE_NOTES.md
