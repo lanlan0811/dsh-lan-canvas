@@ -60,7 +60,7 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.inject(['commandUi'], (scope) => {
     const commandUi = scope.get('commandUi') as { register(contribution: Record<string, unknown>): () => void } | undefined
     if (!commandUi) {
-      scope.logger.warn('dsh-canvas: 没有 commandUi 服务，/design 命令未注册（chip 仍可用）')
+      scope.logger.warn('dsh-canvas: 没有 commandUi 服务，/design 未注册；可改用 dsh_canvas_style 工具锁定风格')
       return
     }
     try {

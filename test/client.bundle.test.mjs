@@ -6,6 +6,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import test from 'node:test'
+import { renderToStaticMarkup } from 'react-dom/server'
 
 const root = resolve(import.meta.dirname, '..')
 const React = (await import('react')).default
@@ -36,7 +37,7 @@ function mount() {
     logger: { debug() {}, warn(message) { warnings.push(String(message)) } },
     slots: {
       inject(_key, callback) { callback(); return () => {} },
-      register(options) { registrations.push(options); return () => {} },
+      register(options, render) { registrations.push({ ...options, render }); return () => {} },
     },
     layout: { selectPanel(panelId) { panelSelections.push(panelId) } },
     locale: {
@@ -107,5 +108,37 @@ test('/design 选中风格只进入设计模式，不提前切换到画布面板
   assert.equal(body.enabled, true)
   assert.equal(body.styleId, 'apple')
   assert.deepEqual(panelSelections, [], '选风格后不得抢切画布面板（否则输入框被藏起）')
+  assert.deepEqual(warnings, [])
+})
+
+test('设计 chip 默认不渲染，/design 选中风格后才出现', async () => {
+  const { registrations, contributions, warnings } = mount()
+  const chip = registrations.find((entry) => entry.id === 'dsh-canvas-design')
+  assert.ok(chip, '必须注册 conversation.input.left 的设计 chip')
+  const props = {
+    sessionId: 's1',
+    useSessions: (selector) => selector({ byId: { s1: { cwd: '/tmp/dsh-canvas-chip' } } }),
+    usePanelInfo: (selector) => selector({ activePanelId: null }),
+  }
+  assert.equal(renderToStaticMarkup(chip.render(props)), '', '未进入设计模式时 chip 不得占用输入框左侧')
+
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = async (url) => ({
+    ok: true,
+    status: 200,
+    async json() {
+      if (String(url).includes('/design-mode')) return { ok: true, active: true, styleId: 'apple', styleName: 'Apple', pagesUpdated: 0 }
+      return { styles: [], current: null }
+    },
+    async text() { return '' },
+  })
+  try {
+    await contributions[0].ui.onSelect({ id: 'apple', label: 'Apple' }, { sessionId: 's1' })
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+  const html = renderToStaticMarkup(chip.render(props))
+  assert.match(html, /dshc-chip/, '选中风格后 chip 应出现')
+  assert.match(html, /panel\.designActive/, 'chip 应显示设计模式状态')
   assert.deepEqual(warnings, [])
 })

@@ -14,7 +14,7 @@
 - 本项目：保留同一套设计域（画布/页面/风格/设计系统/审计/导出），把**宿主从 Tianshu TPI 换成 DeepSeek Harness（DSH）bundle**。
 - 移植后的形态：
   - Host 侧 9 个 `dsh_canvas_*` 工具 + 一个 `dsh-canvas` 技能；
-  - Client 侧主面板 iframe 画布、左侧栏「画布」入口、输入框「设计」chip、画布悬浮球；
+  - Client 侧主面板 iframe 画布、左侧栏「画布」入口、设计模式状态 chip、画布悬浮球；
   - `/design` 设计模式流水线（选风格 → 锁定工作区 → 发需求 → 自动打开画布）；
   - 删除 TPI 运行时与旧入口，不再依赖 Tianshu 的插件 API。
 - **数据不迁移**：只读写当前工作区的 `.dsh-canvas/`，不读取旧版 Tianshu 数据目录。
@@ -119,7 +119,7 @@ failed to read overlay ... node_modules\dsh-canvas\cordis.patch.yml: ENOENT
 
 ## `/design` 设计模式
 
-1. 输入 `/design` 回车，或点输入框左侧「设计」chip；
+1. 输入 `/design` 回车（设计模式开启后，输入框左侧才会出现「设计 · 风格名」chip）；
 2. 选「自由探索」或一套风格（内置或工作区自定义）；
 3. 风格锁定到 `.dsh-canvas/project.json`，chip 显示「设计 · 风格名」；
 4. 发送需求，画布面板自动打开，代理生成的页面自动套用该风格；

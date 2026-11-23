@@ -1,9 +1,10 @@
 /**
  * 输入框左侧的「设计」chip。
  *
- * - 未开启设计模式：显示「设计」，点开选择风格并进入设计模式；
- * - 已开启：显示「设计 · 风格名」，点开可切换风格或退出；
- * - 自动开画布：设计模式开启期间轮询 Host 状态，收到 openRequested 后切到画布面板。
+ * - 默认不显示：设计模式的入口是 `/design` 命令（或画布工具）；
+ * - 通过 `/design` 选中风格/自由探索后，chip 才出现，显示「设计 · 风格名」；
+ * - 点开可切换风格或退出；自动开画布：设计模式期间轮询 Host 状态，
+ *   收到 openRequested 后切到画布面板。
  */
 import * as React from 'react'
 import {
@@ -23,7 +24,7 @@ interface Props extends SlotProps {
 
 const POLL_MS = 800
 
-export function ComposerChip({ ctx, t, sessionId, useSessions, usePanelInfo }: Props): React.ReactElement {
+export function ComposerChip({ ctx, t, sessionId, useSessions, usePanelInfo }: Props): React.ReactElement | null {
   useSync();
   const id = typeof sessionId === 'string' ? sessionId : ''
   const cwd = readCwd(useSessions, id)
@@ -159,9 +160,11 @@ export function ComposerChip({ ctx, t, sessionId, useSessions, usePanelInfo }: P
       })
   }
 
-  const label = active
-    ? `${t('panel.designActive')}${view?.styleName ?? t('design.free')}`
-    : t('panel.designChip')
+  const label = `${t('panel.designActive')}${view?.styleName ?? t('design.free')}`
+
+  // 产品约定：chip 是「已进入设计模式」的状态/退出入口，不是入口本身；
+  // 未开启时完全不占输入框左侧空间，避免常驻按钮误导用户。
+  if (!active) return null
 
   return React.createElement(React.Fragment, null,
     React.createElement(Styles),
@@ -169,7 +172,7 @@ export function ComposerChip({ ctx, t, sessionId, useSessions, usePanelInfo }: P
       React.createElement('button', {
         type: 'button',
         className: 'dshc-chip',
-        'data-active': active ? 'true' : 'false',
+        'data-active': 'true',
         'aria-haspopup': 'menu',
         'aria-expanded': menuOpen,
         title: label,
