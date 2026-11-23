@@ -196,6 +196,7 @@ test('Release 工作流在创建 Release 前复核 main CI 并执行完整门禁
   assert.ok(workflow.includes('path: .tmp/release-prototypes'))
   assert.ok(workflow.includes('include-hidden-files: true'))
   assert.ok(workflow.includes('--verify-tag --repo'))
+  assert.ok(workflow.includes('.tmp/release-assets/*.tgz'), 'Release 必须上传可安装 tarball 资产')
   assert.equal(workflow.match(/node scripts.check-release-ci.mjs/g)?.length, 2, '发布创建前必须再次复核 CI，不能只检查验收开始时的状态')
   assert.equal(workflow.match(/git fetch --no-tags origin refs.heads.main:refs.remotes.origin.main/g)?.length, 2, '创建 Release 前必须重新确认当前 main 历史')
 })
@@ -203,6 +204,7 @@ test('Release 工作流在创建 Release 前复核 main CI 并执行完整门禁
 test('main CI requires full original-composition evidence before release eligibility', () => {
   const workflow = readFileSync(join(resolve(import.meta.dirname, '..'), '.github/workflows/ci.yml'), 'utf8')
   assert.ok(workflow.includes('npm run verify:prototypes -- --out .tmp/ci-prototypes'))
+  assert.ok(workflow.includes('npm run check:pack'), 'main CI 必须校验发行包内容')
   assert.ok(workflow.includes('actions/upload-artifact@v4'))
   assert.match(workflow, /if-no-files-found: error/)
   assert.ok(workflow.includes('path: .tmp/ci-prototypes'))
