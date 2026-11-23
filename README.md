@@ -11,10 +11,18 @@
 
 ## 安装
 
-在 DSH 里安装本目录（二选一）：
+在 DSH 里安装（三选一）：
 
-- **Plugins** > **Add plugin**，选择本仓库的绝对目录；
-- 或使用 `plugin_manager` 的 `install_bundle`，目标为本仓库目录。
+- **推荐：按仓库 URL 安装**。**Plugins** > **Add plugin** 里填
+  `https://github.com/lanlan0811/dsh-lan-canvas`；或让代理执行
+  `plugin_manager` 的 `install_bundle`，目标为同一个 URL。
+- 下载 Release 里的 `dsh-canvas-<版本>.tgz`，用该文件路径或它的 URL 安装。
+- **Plugins** > **Add plugin** 选择本仓库的绝对目录（开发时常用）。
+
+> **不要只填 `dsh-canvas`。** npm 上存在一个同名的占位包 `dsh-canvas@0.0.1`
+> （由他人保留，只有 package.json/README，没有 `cordis.patch.yml`）。按裸包名安装会装到它，
+> 报 `failed to read overlay ... node_modules\dsh-canvas\cordis.patch.yml: ENOENT`。
+> 一旦装错：先在 Plugins 页移除该插件，再用上面的仓库 URL / tarball 重装。
 
 安装后在 **Plugins** 页面确认：
 
@@ -22,7 +30,8 @@
 - 详情页展示 `docs/DETAIL.md` 的内容；
 - 进入新会话，确认 9 个 `dsh_canvas_*` 工具与 `dsh-canvas` 技能出现。
 
-激活失败时先看 DSH 日志与本仓库的 `npm run check:bundle`。
+激活失败时先看 DSH 日志与本仓库的 `npm run check:bundle`、`npm run check:pack`；
+更完整的排查步骤见 [docs/INSTALL.md](docs/INSTALL.md)。
 
 ## 配置
 

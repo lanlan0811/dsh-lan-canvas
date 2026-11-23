@@ -73,6 +73,9 @@ jobs:
       - name: Bundle self-check
         run: npm run check:bundle
 
+      - name: Installable package contents
+        run: npm run check:pack
+
       - name: Verify all original compositions
         run: npm run verify:prototypes -- --out .tmp/release-prototypes
 
@@ -104,3 +107,14 @@ jobs:
           gh release create "$GITHUB_REF_NAME" --verify-tag --repo "$GITHUB_REPOSITORY" \
             --title "${GITHUB_REF_NAME}" \
             --notes-file RELEASE_NOTES.md
+
+      - name: Attach installable bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Release 资产是安装失败（裸包名撞 npm 占位包）的稳定替代入口：
+          # pnpm 可直接以该 .tgz URL 安装，包内已由 check:pack 验证含 cordis.patch.yml。
+          mkdir -p .tmp/release-assets
+          npm pack --pack-destination .tmp/release-assets --ignore-scripts
+          gh release upload "$GITHUB_REF_NAME" .tmp/release-assets/*.tgz \
+            --repo "$GITHUB_REPOSITORY" --clobber

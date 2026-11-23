@@ -182,7 +182,8 @@ test('Release 工作流在创建 Release 前复核 main CI 并执行完整门禁
     'node scripts/check-release-ci.mjs', 'npm ci', 'npm run typecheck', 'npm run build',
     'npm run notices', 'git status --porcelain -- dist', 'THIRD-PARTY-NOTICES.md',
     'DSH_CANVAS_REQUIRE_BROWSER=1', 'npm test', 'npm run verify:codegen', 'npm run check:bundle',
-    'npm run verify:prototypes', 'test -s', 'gh release create',
+    'npm run check:pack', 'npm run verify:prototypes', 'test -s', 'gh release create',
+    'gh release upload',
   ]
   let previous = -1
   for (const command of required) {

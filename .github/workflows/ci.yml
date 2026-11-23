@@ -63,6 +63,9 @@ jobs:
       - name: Bundle self-check
         run: npm run check:bundle
 
+      - name: Installable package contents
+        run: npm run check:pack
+
       - name: Verify all original compositions
         run: npm run verify:prototypes -- --out .tmp/ci-prototypes
 

@@ -1,6 +1,6 @@
 {
   "name": "dsh-canvas",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "无限画布设计工作台：9 个 dsh_canvas_* 工具、dsh-canvas 技能、主面板画布与 /design 设计模式",
   "license": "Apache-2.0",
   "private": true,
@@ -44,7 +44,8 @@
     "verify:codegen": "node scripts/verify-codegen.mjs",
     "verify:codegen:real": "node scripts/verify-codegen-real.mjs",
     "verify:prototypes": "node scripts/verify-prototypes.mjs",
-    "check:bundle": "node scripts/check-bundle.mjs"
+    "check:bundle": "node scripts/check-bundle.mjs",
+    "check:pack": "node scripts/check-pack.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
