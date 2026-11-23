@@ -11,8 +11,8 @@ import { loadPlugin } from './helpers/host.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const { api } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
-const styleTool = api.tools.find((t) => t.name === 'canvas_style')
-const designTool = api.tools.find((t) => t.name === 'canvas_design_system')
+const styleTool = api.tools.find((t) => t.name === 'dsh_canvas_style')
+const designTool = api.tools.find((t) => t.name === 'dsh_canvas_design_system')
 
 const PAGE = `<!doctype html>
 <html><head><style>.x{color:red}</style></head>

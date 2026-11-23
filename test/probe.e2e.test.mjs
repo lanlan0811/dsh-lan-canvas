@@ -24,14 +24,14 @@ test('探针 e2e：两层选择', { skip: !browserPath && '未找到浏览器' }
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-e2e-'))
   let browser
   try {
-    const open = await tools.canvas_open.execute({ input: { port: 0 }, cwd })
+    const open = await tools.dsh_canvas_open.execute({ input: { port: 0 }, cwd })
     const url = open.content.match(/http:\/\/127\.0\.0\.1:\d+\/w\/[0-9a-f]{32}\/\?ws=[0-9a-f]{32}#[0-9a-f]{64}/)[0]
     const token = new URL(url).searchParams.get('ws')
 
     const pageHtml =
       '<!doctype html><html><head><meta charset="utf-8"></head><body>' +
       '<div id="a" style="padding:20px"><button id="b">OK</button></div></body></html>'
-    const add = await tools.canvas_upsert_page.execute({ input: { html: pageHtml, title: 'E2E' }, cwd })
+    const add = await tools.dsh_canvas_upsert_page.execute({ input: { html: pageHtml, title: 'E2E' }, cwd })
     assert.ok(!add.isError, add.content)
     const id = add.content.match(/id=([\w-]+)/)[1]
 
@@ -102,7 +102,7 @@ test('探针 e2e：两层选择', { skip: !browserPath && '未找到浏览器' }
     await page.waitForSelector('.selection-panel', { timeout: 5000 })
     assert.equal(await page.$('.selection-panel input'), null, '面板不应有样式输入框')
     assert.ok(await page.$('.selection-panel__note-input'), '面板应有批注输入框')
-    const saved = readFileSync(join(cwd, '.tianshu-canvas', 'pages', `${id}.html`), 'utf8')
+    const saved = readFileSync(join(cwd, '.dsh-canvas', 'pages', `${id}.html`), 'utf8')
     assert.doesNotMatch(saved, /color: rgb\(1, 2, 3\)/, '选中不应改动页面文件')
     assert.doesNotMatch(saved, /data-tianshu-probe/, '页面文件不应含探针')
     assert.doesNotMatch(saved, /__tianshu_probe__/, '页面文件不应含探针运行时')

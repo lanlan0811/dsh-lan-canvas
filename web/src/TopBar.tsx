@@ -62,7 +62,7 @@ export function TopBar({
     <header className="topbar">
       <div className="topbar__brand">
         <img className="topbar__mark" src={brandIcon} alt="" width={22} height={22} />
-        <span className="topbar__name">天枢画布</span>
+        <span className="topbar__name">DSH画布</span>
       </div>
       <div className="topbar__tools">
         <button

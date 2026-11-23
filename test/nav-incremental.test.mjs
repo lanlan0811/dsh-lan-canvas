@@ -20,7 +20,7 @@ process.on('exit', () => rmSync(compiled, { recursive: true, force: true }))
 
 function fixture() {
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-nav-incremental-'))
-  const htmlPath = (id) => join(cwd, '.tianshu-canvas', 'pages', `${id}.html`)
+  const htmlPath = (id) => join(cwd, '.dsh-canvas', 'pages', `${id}.html`)
   const read = (id) => readFileSync(htmlPath(id), 'utf8')
   const mutate = (callback = () => {}) => nav.withProjectTransaction(cwd, (tx) => {
     callback(tx)
@@ -29,7 +29,7 @@ function fixture() {
   const add = (tx, id, title, html = '<p>body</p>') => {
     const now = Date.now()
     tx.stagePageHtml(id, html)
-    tx.project.nodes.push({ id, title, type: 'page', x: 0, y: 0, width: 320, height: 600, deviceType: 'mobile', htmlPath: `.tianshu-canvas/pages/${id}.html`, htmlRev: now, createdAt: now, updatedAt: now })
+    tx.project.nodes.push({ id, title, type: 'page', x: 0, y: 0, width: 320, height: 600, deviceType: 'mobile', htmlPath: `.dsh-canvas/pages/${id}.html`, htmlRev: now, createdAt: now, updatedAt: now })
     tx.markProjectChanged()
   }
   return { cwd, htmlPath, read, mutate, add, dispose() { nav.clearNavigationCache(cwd); rmSync(cwd, { recursive: true, force: true }) } }
@@ -179,14 +179,14 @@ test('failed transactions cannot publish navigation metadata or new HTML into th
   const f = fixture()
   try {
     f.mutate((tx) => f.add(tx, 'page-source', '来源', '<a href="later.html">later</a>'))
-    const originalProject = readFileSync(join(f.cwd, '.tianshu-canvas', 'project.json'))
+    const originalProject = readFileSync(join(f.cwd, '.dsh-canvas', 'project.json'))
     const originalHtml = f.read('page-source')
     assert.throws(() => nav.withProjectTransaction(f.cwd, (tx) => {
       f.add(tx, 'page-later', 'later')
       nav.backfillNavigation(f.cwd, tx)
       throw new Error('reject after navigation')
     }), /reject after navigation/)
-    assert.deepEqual(readFileSync(join(f.cwd, '.tianshu-canvas', 'project.json')), originalProject)
+    assert.deepEqual(readFileSync(join(f.cwd, '.dsh-canvas', 'project.json')), originalProject)
     assert.equal(f.read('page-source'), originalHtml)
     const retry = f.mutate((tx) => f.add(tx, 'page-later', 'later'))
     assert.deepEqual(retry.changed, ['来源'])

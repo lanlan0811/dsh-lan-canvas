@@ -69,7 +69,7 @@ describe('回归', { concurrency: false }, () => {
   let token = ''
 
   before(async () => {
-    const open = await tools.canvas_open.execute({ input: { port: 0 }, cwd })
+    const open = await tools.dsh_canvas_open.execute({ input: { port: 0 }, cwd })
     assert.ok(!open.isError, open.content)
     const m = open.content.match(/http:\/\/127\.0\.0\.1:(\d+)\/w\/[0-9a-f]{32}\/\?ws=([0-9a-f]{32})#[0-9a-f]{64}/)
     assert.ok(m, `未返回合法 URL: ${open.content}`)
@@ -83,7 +83,7 @@ describe('回归', { concurrency: false }, () => {
   })
 
   test('畸形百分号编码返回 400，未预期异常返回 500，进程不退出', async () => {
-    const keep = await tools.canvas_upsert_page.execute({ input: { html: '<h1>Keep</h1>', title: 'Keep' }, cwd })
+    const keep = await tools.dsh_canvas_upsert_page.execute({ input: { html: '<h1>Keep</h1>', title: 'Keep' }, cwd })
     assert.ok(!keep.isError, keep.content)
     const keepId = pageIdFrom(keep.content)
 
@@ -101,10 +101,10 @@ describe('回归', { concurrency: false }, () => {
     const still = await rawRequest({ port, path: `/page/${keepId}?ws=${token}` })
     assert.equal(still.status, 200)
 
-    const boom = await tools.canvas_upsert_page.execute({ input: { html: '<h1>Boom</h1>', title: 'Boom' }, cwd })
+    const boom = await tools.dsh_canvas_upsert_page.execute({ input: { html: '<h1>Boom</h1>', title: 'Boom' }, cwd })
     assert.ok(!boom.isError, boom.content)
     const boomId = pageIdFrom(boom.content)
-    const pageFile = join(cwd, '.tianshu-canvas', 'pages', `${boomId}.html`)
+    const pageFile = join(cwd, '.dsh-canvas', 'pages', `${boomId}.html`)
     rmSync(pageFile)
     mkdirSync(pageFile)
 
@@ -117,12 +117,12 @@ describe('回归', { concurrency: false }, () => {
 
   test('损坏的 project.json 先备份再按空项目继续，原始字节不丢', async () => {
     async function readAsEmpty(dir, original) {
-      const projDir = join(dir, '.tianshu-canvas')
+      const projDir = join(dir, '.dsh-canvas')
       mkdirSync(projDir, { recursive: true })
       const file = join(projDir, 'project.json')
       const valid = JSON.stringify({ version: 1, viewport: { x: 0, y: 0, zoom: 1 }, nodes: [], edges: [] })
       writeFileSync(file, valid)
-      const ok = await tools.canvas_get_state.execute({ input: {}, cwd: dir })
+      const ok = await tools.dsh_canvas_get_state.execute({ input: {}, cwd: dir })
       assert.ok(!ok.isError, ok.content)
       assert.equal(
         readdirSync(projDir).some((name) => name.startsWith('project.json.corrupt-')),
@@ -135,7 +135,7 @@ describe('回归', { concurrency: false }, () => {
 
       // 只读不动盘：文件可能处于 git 冲突中，修好后画布应自动恢复。
       writeFileSync(file, original)
-      const state = await tools.canvas_get_state.execute({ input: {}, cwd: dir })
+      const state = await tools.dsh_canvas_get_state.execute({ input: {}, cwd: dir })
       assert.ok(!state.isError, state.content)
       assert.match(state.content, /暂无页面节点/)
       assert.match(state.content, /已损坏/, '损坏必须告知调用方')
@@ -143,7 +143,7 @@ describe('回归', { concurrency: false }, () => {
       assert.equal(readFileSync(file, 'utf8'), original, '读取不应改动原文件')
 
       // 写入前备份：原始字节保留，并把备份路径告诉调用方。
-      const add = await tools.canvas_upsert_page.execute({ input: { html: '<p>new</p>', title: 'N' }, cwd: dir })
+      const add = await tools.dsh_canvas_upsert_page.execute({ input: { html: '<p>new</p>', title: 'N' }, cwd: dir })
       assert.ok(!add.isError, add.content)
       const backups = backupsOf()
       assert.equal(backups.length, 1)
@@ -155,9 +155,9 @@ describe('回归', { concurrency: false }, () => {
       assert.equal(saved.nodes[0].title, 'N')
 
       // 项目恢复健康后不再告警，也不再产生备份。
-      const healthy = await tools.canvas_get_state.execute({ input: {}, cwd: dir })
+      const healthy = await tools.dsh_canvas_get_state.execute({ input: {}, cwd: dir })
       assert.doesNotMatch(healthy.content, /已损坏/)
-      await tools.canvas_upsert_page.execute({ input: { html: '<p>2</p>', title: 'M' }, cwd: dir })
+      await tools.dsh_canvas_upsert_page.execute({ input: { html: '<p>2</p>', title: 'M' }, cwd: dir })
       assert.equal(backupsOf().length, 1)
     }
 
@@ -173,19 +173,19 @@ describe('回归', { concurrency: false }, () => {
   })
 
   test('连线校验非法端点与自环，删除无变化不写盘；选中非法 pageId 返回 400', async () => {
-    const a = await tools.canvas_upsert_page.execute({ input: { html: '<p>A</p>', title: 'A' }, cwd })
-    const b = await tools.canvas_upsert_page.execute({ input: { html: '<p>B</p>', title: 'B' }, cwd })
+    const a = await tools.dsh_canvas_upsert_page.execute({ input: { html: '<p>A</p>', title: 'A' }, cwd })
+    const b = await tools.dsh_canvas_upsert_page.execute({ input: { html: '<p>B</p>', title: 'B' }, cwd })
     assert.ok(!a.isError && !b.isError, `${a.content}\n${b.content}`)
     const idA = pageIdFrom(a.content)
     const idB = pageIdFrom(b.content)
-    const file = join(cwd, '.tianshu-canvas', 'project.json')
+    const file = join(cwd, '.dsh-canvas', 'project.json')
 
     const postEdge = (op, source, target) =>
       rawRequest({
         port,
         method: 'POST',
         path: '/api/edges',
-        headers: { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1' },
+        headers: { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1' },
         body: JSON.stringify({ ws: token, op, source, target }),
       })
 
@@ -206,10 +206,10 @@ describe('回归', { concurrency: false }, () => {
     assert.match(missing.body, /节点不存在/)
     assert.equal(JSON.parse(readFileSync(file, 'utf8')).edges.length, 1, '拒绝的连线不应写入')
 
-    const toolSelf = await tools.canvas_arrange.execute({ input: { action: 'link', source: idA, target: idA }, cwd })
+    const toolSelf = await tools.dsh_canvas_arrange.execute({ input: { action: 'link', source: idA, target: idA }, cwd })
     assert.equal(toolSelf.isError, true)
     assert.match(toolSelf.content, /自身/)
-    const toolUnsafe = await tools.canvas_arrange.execute({ input: { action: 'unlink', source: '../evil', target: idB }, cwd })
+    const toolUnsafe = await tools.dsh_canvas_arrange.execute({ input: { action: 'unlink', source: '../evil', target: idB }, cwd })
     assert.ok(!toolUnsafe.isError, toolUnsafe.content)
     assert.match(toolUnsafe.content, /没有匹配的连线/)
 
@@ -232,13 +232,13 @@ describe('回归', { concurrency: false }, () => {
     assert.equal(again.status, 200, again.body)
     assert.equal(statSync(file).mtimeMs, beforeAgain)
 
-    const selPath = join(cwd, '.tianshu-canvas', 'selection.json')
+    const selPath = join(cwd, '.dsh-canvas', 'selection.json')
     rmSync(selPath, { force: true })
     const badSel = await rawRequest({
       port,
       method: 'POST',
       path: '/api/selection',
-      headers: { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1' },
+      headers: { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1' },
       body: JSON.stringify({ ws: token, pageId: '../evil', kind: 'page' }),
     })
     assert.equal(badSel.status, 400, badSel.body)
@@ -249,7 +249,7 @@ describe('回归', { concurrency: false }, () => {
       port,
       method: 'POST',
       path: '/api/selection',
-      headers: { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1' },
+      headers: { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1' },
       body: JSON.stringify({ ws: token, pageId: idA, kind: 'page' }),
     })
     assert.equal(okSel.status, 200, okSel.body)
@@ -257,7 +257,7 @@ describe('回归', { concurrency: false }, () => {
   })
 
   test('请求体超限先返回 413，视口与通用上限都生效', async () => {
-    const headers = { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1' }
+    const headers = { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1' }
     const viewport = (body) =>
       rawRequest({ port, method: 'POST', path: '/api/viewport', headers, body })
 
@@ -286,7 +286,7 @@ describe('回归', { concurrency: false }, () => {
     assert.equal(again.status, 200, again.body)
     assert.equal((await fetch(`${base}/healthz`)).status, 200)
 
-    const saved = JSON.parse(readFileSync(join(cwd, '.tianshu-canvas', 'project.json'), 'utf8'))
+    const saved = JSON.parse(readFileSync(join(cwd, '.dsh-canvas', 'project.json'), 'utf8'))
     assert.equal(saved.viewport.x, 8)
     assert.equal(saved.viewport.y, 9)
     assert.equal(saved.viewport.zoom, 2)
@@ -297,7 +297,7 @@ describe('回归', { concurrency: false }, () => {
     const { text, closedAfter } = await new Promise((resolve, reject) => {
       const socket = net.connect(port, '127.0.0.1', () => {
         socket.write(
-          'POST /api/viewport HTTP/1.1\r\nHost: 127.0.0.1\r\nX-Tianshu-Canvas: 1\r\n' +
+          'POST /api/viewport HTTP/1.1\r\nHost: 127.0.0.1\r\nX-DSH-Canvas: 1\r\n' +
             `Content-Type: application/json\r\nContent-Length: ${MAX_VIEWPORT_BODY * 10}\r\n\r\n` +
             'x'.repeat(MAX_VIEWPORT_BODY + 1),
         )
@@ -338,11 +338,11 @@ describe('回归', { concurrency: false }, () => {
     const slashes = await rawRequest({ port, path: '//' })
     assert.equal(slashes.status, 400, slashes.body)
 
-    mkdirSync(join(cwd, '.tianshu-canvas', 'exports'), { recursive: true })
+    mkdirSync(join(cwd, '.dsh-canvas', 'exports'), { recursive: true })
     const dirName = await rawRequest({ port, path: `/api/export-file?ws=${token}&name=.` })
     assert.equal(dirName.status, 404, dirName.body)
 
-    const headers = { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1' }
+    const headers = { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1' }
     for (const path of ['/api/viewport', '/api/nodes', '/api/edges', '/api/selection', '/api/export']) {
       for (const body of ['null', '[]', '1']) {
         const res = await rawRequest({ port, method: 'POST', path, headers, body })
@@ -353,9 +353,9 @@ describe('回归', { concurrency: false }, () => {
   })
 
   test('旧版本留下的悬空连线和自环可以删除', async () => {
-    const a = await tools.canvas_upsert_page.execute({ input: { html: '<p>A</p>', title: 'A' }, cwd })
+    const a = await tools.dsh_canvas_upsert_page.execute({ input: { html: '<p>A</p>', title: 'A' }, cwd })
     const idA = pageIdFrom(a.content)
-    const file = join(cwd, '.tianshu-canvas', 'project.json')
+    const file = join(cwd, '.dsh-canvas', 'project.json')
     const project = JSON.parse(readFileSync(file, 'utf8'))
     project.edges = [
       { id: 'edge-gone', source: 'page-gone', target: idA },
@@ -363,7 +363,7 @@ describe('回归', { concurrency: false }, () => {
     ]
     writeFileSync(file, JSON.stringify(project))
 
-    const viaTool = await tools.canvas_arrange.execute({ input: { action: 'unlink', source: 'page-gone', target: idA }, cwd })
+    const viaTool = await tools.dsh_canvas_arrange.execute({ input: { action: 'unlink', source: 'page-gone', target: idA }, cwd })
     assert.ok(!viaTool.isError, viaTool.content)
     assert.match(viaTool.content, /已取消连线/)
 
@@ -371,7 +371,7 @@ describe('回归', { concurrency: false }, () => {
       port,
       method: 'POST',
       path: '/api/edges',
-      headers: { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1' },
+      headers: { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1' },
       body: JSON.stringify({ ws: token, op: 'remove', source: idA, target: idA }),
     })
     assert.equal(viaApi.status, 200, viaApi.body)
@@ -381,9 +381,9 @@ describe('回归', { concurrency: false }, () => {
   test('含无效条目的项目先备份再写；视口保存不改写有问题的文件', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'tsc-partial-'))
     try {
-      const open = await tools.canvas_open.execute({ input: {}, cwd: dir })
+      const open = await tools.dsh_canvas_open.execute({ input: {}, cwd: dir })
       const ws = open.content.match(/ws=([0-9a-f]{32})/)[1]
-      const projDir = join(dir, '.tianshu-canvas')
+      const projDir = join(dir, '.dsh-canvas')
       mkdirSync(projDir, { recursive: true })
       const file = join(projDir, 'project.json')
       const original = JSON.stringify({
@@ -398,14 +398,14 @@ describe('回归', { concurrency: false }, () => {
       writeFileSync(file, original)
       const backupsOf = () => readdirSync(projDir).filter((name) => name.startsWith('project.json.corrupt-'))
 
-      const state = await tools.canvas_get_state.execute({ input: {}, cwd: dir })
+      const state = await tools.dsh_canvas_get_state.execute({ input: {}, cwd: dir })
       assert.match(state.content, /1 条无效/)
 
       const vp = await rawRequest({
         port,
         method: 'POST',
         path: '/api/viewport',
-        headers: { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1' },
+        headers: { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1' },
         body: JSON.stringify({ ws, x: 1, y: 2, zoom: 1 }),
       })
       assert.equal(vp.status, 200, vp.body)
@@ -415,7 +415,7 @@ describe('回归', { concurrency: false }, () => {
       const apiProject = JSON.parse((await rawRequest({ port, path: `/api/project?ws=${ws}` })).body)
       assert.match(apiProject.issue, /1 条无效/, '画布前端应能拿到提示')
 
-      const add = await tools.canvas_upsert_page.execute({ input: { html: '<p>x</p>', title: 'New' }, cwd: dir })
+      const add = await tools.dsh_canvas_upsert_page.execute({ input: { html: '<p>x</p>', title: 'New' }, cwd: dir })
       assert.ok(!add.isError, add.content)
       assert.equal(backupsOf().length, 1)
       assert.equal(readFileSync(join(projDir, backupsOf()[0]), 'utf8'), original)
@@ -428,15 +428,15 @@ describe('回归', { concurrency: false }, () => {
   test('服务端故障返回 500 且不泄露路径，输入错误返回 400', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'tsc-fault-'))
     try {
-      const open = await tools.canvas_open.execute({ input: {}, cwd: dir })
+      const open = await tools.dsh_canvas_open.execute({ input: {}, cwd: dir })
       const ws = open.content.match(/ws=([0-9a-f]{32})/)[1]
       // project.json 是目录：读取抛 EISDIR，属于服务端故障。
-      mkdirSync(join(dir, '.tianshu-canvas', 'project.json'), { recursive: true })
+      mkdirSync(join(dir, '.dsh-canvas', 'project.json'), { recursive: true })
       const res = await rawRequest({
         port,
         method: 'POST',
         path: '/api/edges',
-        headers: { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1' },
+        headers: { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1' },
         body: JSON.stringify({ ws, op: 'add', source: 'page-a', target: 'page-b' }),
       })
       assert.equal(res.status, 500, res.body)

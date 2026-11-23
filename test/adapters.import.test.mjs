@@ -65,7 +65,7 @@ export default function App() {
 `
 
 async function importStyle(cwd, args) {
-  return tool('canvas_design_system').execute({ args: { action: 'import', ...args }, cwd, sessionId: 'test' })
+  return tool('dsh_canvas_design_system').execute({ args: { action: 'import', ...args }, cwd, sessionId: 'test' })
 }
 
 async function test(name, optionsOrFn, maybeFn) {
@@ -95,7 +95,7 @@ await test('shadcn：从 oklch 主题导入，颜色归一化为 hex，且通过
   assert.match(res.content, /观测 \d+ 项、推断 \d+ 项/)
   assert.match(res.content, /已创建自定义设计系统/)
 
-  const tokens = JSON.parse(readFileSync(join(cwd, '.tianshu-canvas/library/brand-x/tokens.json'), 'utf8'))
+  const tokens = JSON.parse(readFileSync(join(cwd, '.dsh-canvas/library/brand-x/tokens.json'), 'utf8'))
   const errors = []
   const warnings = []
   validateTokens(tokens, 'brand-x', errors, warnings)
@@ -103,14 +103,14 @@ await test('shadcn：从 oklch 主题导入，颜色归一化为 hex，且通过
   assert.match(tokens.color.primitives.brand['500'], /^#[0-9a-f]{6}$/)
   assert.match(tokens.color.primitives.neutral['900'], /^#[0-9a-f]{6}$/)
 
-  const meta = JSON.parse(readFileSync(join(cwd, '.tianshu-canvas/library/brand-x/meta.json'), 'utf8'))
+  const meta = JSON.parse(readFileSync(join(cwd, '.dsh-canvas/library/brand-x/meta.json'), 'utf8'))
   assert.equal(meta.adapter.id, 'shadcn')
 
   // 确定性：同工作区、同输入，两次导入的 tokens 字节一致。
-  const first = readFileSync(join(cwd, '.tianshu-canvas/library/brand-x/tokens.json'), 'utf8')
+  const first = readFileSync(join(cwd, '.dsh-canvas/library/brand-x/tokens.json'), 'utf8')
   const again = await importStyle(cwd, { id: 'brand-x', stack: 'shadcn', set_current: false, overwrite: true })
   assert.equal(again.isError, undefined, again.content)
-  assert.equal(readFileSync(join(cwd, '.tianshu-canvas/library/brand-x/tokens.json'), 'utf8'), first, '两次导入产物不一致')
+  assert.equal(readFileSync(join(cwd, '.dsh-canvas/library/brand-x/tokens.json'), 'utf8'), first, '两次导入产物不一致')
 })
 
 await test('shadcn：自动探测（未显式传 stack）', async () => {
@@ -130,7 +130,7 @@ await test('AntD：读取 ConfigProvider 字面量，观察项与默认值可区
   const res = await importStyle(cwd, { id: 'antd-from-repo', stack: 'antd', set_current: false })
   assert.equal(res.isError, undefined, res.content)
   assert.match(res.content, /主题来源：src\/App\.tsx/)
-  const tokens = JSON.parse(readFileSync(join(cwd, '.tianshu-canvas/library/antd-from-repo/tokens.json'), 'utf8'))
+  const tokens = JSON.parse(readFileSync(join(cwd, '.dsh-canvas/library/antd-from-repo/tokens.json'), 'utf8'))
   assert.equal(tokens.color.primitives.brand['500'], '#722ed1')
 })
 
@@ -158,7 +158,7 @@ await test('反例：缺少 primary / 未知 stack / 无主题文件 都返回�
   const noTheme = await importStyle(cwd, { id: 'bad-3', stack: 'shadcn', source_path: 'app/missing.css', set_current: false })
   assert.equal(noTheme.isError, true)
 
-  const library = join(cwd, '.tianshu-canvas/library')
+  const library = join(cwd, '.dsh-canvas/library')
   assert.equal(existsSync(library) ? readdirSync(library).length : 0, 0, '失败时不应创建 library 目录')
 })
 
@@ -174,7 +174,7 @@ await test('反例：对比度不足的导入会被 token 契约拒绝', async (
   const res = await importStyle(cwd, { id: 'low-contrast', stack: 'shadcn', set_current: false })
   // 允许成功（已自动修正）或失败（严格拒绝），但绝不能静默写入一套低对比度主题。
   if (res.isError === undefined) {
-    const tokens = JSON.parse(readFileSync(join(cwd, '.tianshu-canvas/library/low-contrast/tokens.json'), 'utf8'))
+    const tokens = JSON.parse(readFileSync(join(cwd, '.dsh-canvas/library/low-contrast/tokens.json'), 'utf8'))
     const errors = []
     const warnings = []
     validateTokens(tokens, 'low-contrast', errors, warnings)
@@ -302,7 +302,7 @@ await test('自动导入：工作区内的正常主题仍可读取（加固误�
   write(cwd, 'app/globals.css', SECRET_CSS)
   const res = await importStyle(cwd, { id: 'ok-theme', stack: 'shadcn', set_current: false })
   assert.equal(res.isError, undefined, res.content)
-  const tokens = JSON.parse(readFileSync(join(cwd, '.tianshu-canvas/library/ok-theme/tokens.json'), 'utf8'))
+  const tokens = JSON.parse(readFileSync(join(cwd, '.dsh-canvas/library/ok-theme/tokens.json'), 'utf8'))
   assert.equal(tokens.color.primitives.brand['500'], SECRET, '工作区内的主色应被正常读取')
 })
 
@@ -328,7 +328,7 @@ function shadcnWorkspace() {
 }
 
 function importedBrand(cwd, id) {
-  const tokens = JSON.parse(readFileSync(join(cwd, '.tianshu-canvas/library', id, 'tokens.json'), 'utf8'))
+  const tokens = JSON.parse(readFileSync(join(cwd, '.dsh-canvas/library', id, 'tokens.json'), 'utf8'))
   return tokens.color.primitives.brand['500']
 }
 
@@ -337,7 +337,7 @@ await test('0.8.3 缺陷回归：仅有 src/index.css 时 dry_run 导入成功�
   write(cwd, 'src/index.css', FEEDBACK_CSS)
   const res = await importStyle(cwd, { id: 'audit', stack: 'shadcn', dry_run: true })
   assert.equal(res.isError, undefined, res.content)
-  assert.equal(existsSync(join(cwd, '.tianshu-canvas/library')), false, 'dry_run 不得落盘')
+  assert.equal(existsSync(join(cwd, '.dsh-canvas/library')), false, 'dry_run 不得落盘')
 })
 
 for (const candidate of CSS_CANDIDATES) {
@@ -390,12 +390,12 @@ await test('候选跳过：前面缺失/越界/非普通文件时不阻断后面
 
 await test('全部候选缺失：明确失败，不创建主题也不改动已有主题', async () => {
   const cwd = shadcnWorkspace()
-  write(cwd, '.tianshu-canvas/library/existing/tokens.json', '{"keep":true}')
+  write(cwd, '.dsh-canvas/library/existing/tokens.json', '{"keep":true}')
   const res = await importStyle(cwd, { id: 'existing', stack: 'shadcn', set_current: false })
   assert.equal(res.isError, true)
   assert.match(res.content, /没有找到可导入的主题/)
-  assert.equal(readFileSync(join(cwd, '.tianshu-canvas/library/existing/tokens.json'), 'utf8'), '{"keep":true}')
-  assert.deepEqual(readdirSync(join(cwd, '.tianshu-canvas/library')), ['existing'])
+  assert.equal(readFileSync(join(cwd, '.dsh-canvas/library/existing/tokens.json'), 'utf8'), '{"keep":true}')
+  assert.deepEqual(readdirSync(join(cwd, '.dsh-canvas/library')), ['existing'])
 })
 
 await test('重复导入：同一输入产物字节一致；默认不覆盖已有用户主题', async () => {
@@ -403,15 +403,15 @@ await test('重复导入：同一输入产物字节一致；默认不覆盖已�
   write(cwd, 'app/globals.css', FEEDBACK_CSS)
   const first = await importStyle(cwd, { id: 'repeat', stack: 'shadcn', set_current: false })
   assert.equal(first.isError, undefined, first.content)
-  const bytes = readFileSync(join(cwd, '.tianshu-canvas/library/repeat/tokens.json'), 'utf8')
+  const bytes = readFileSync(join(cwd, '.dsh-canvas/library/repeat/tokens.json'), 'utf8')
 
   const noOverwrite = await importStyle(cwd, { id: 'repeat', stack: 'shadcn', set_current: false })
   assert.equal(noOverwrite.isError, true, '未传 overwrite 时不得替换已有主题')
-  assert.equal(readFileSync(join(cwd, '.tianshu-canvas/library/repeat/tokens.json'), 'utf8'), bytes)
+  assert.equal(readFileSync(join(cwd, '.dsh-canvas/library/repeat/tokens.json'), 'utf8'), bytes)
 
   const again = await importStyle(cwd, { id: 'repeat', stack: 'shadcn', set_current: false, overwrite: true })
   assert.equal(again.isError, undefined, again.content)
-  assert.equal(readFileSync(join(cwd, '.tianshu-canvas/library/repeat/tokens.json'), 'utf8'), bytes, '同一输入两次导入应一致')
+  assert.equal(readFileSync(join(cwd, '.dsh-canvas/library/repeat/tokens.json'), 'utf8'), bytes, '同一输入两次导入应一致')
 })
 
 await test('确定性替换：realpath 之后再换外链也不能通过文件身份复检', { skip: skipIfNoSymlink }, async () => {

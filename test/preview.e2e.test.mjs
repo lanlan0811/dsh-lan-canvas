@@ -27,17 +27,17 @@ test('预览 e2e：右键菜单 / 设备切换 / 交互 / 跳转 / 关闭', { sk
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-preview-e2e-'))
   let browser
   try {
-    const open = await tools.canvas_open.execute({ input: { port: 0 }, cwd })
+    const open = await tools.dsh_canvas_open.execute({ input: { port: 0 }, cwd })
     const url = open.content.match(/http:\/\/127\.0\.0\.1:\d+\/w\/[0-9a-f]{32}\/\?ws=[0-9a-f]{32}#[0-9a-f]{64}/)[0]
     const token = new URL(url).searchParams.get('ws')
     const port = new URL(url).port
 
-    const b = await tools.canvas_upsert_page.execute({
+    const b = await tools.dsh_canvas_upsert_page.execute({
       input: { html: '<html><head></head><body><h1 id="bt">B 页</h1><p>目标页内容</p></body></html>', title: '目标页' },
       cwd,
     })
     const idB = b.content.match(/id=([\w-]+)/)[1]
-    const a = await tools.canvas_upsert_page.execute({
+    const a = await tools.dsh_canvas_upsert_page.execute({
       input: {
         html:
           '<html><head><style>body{margin:0;font-family:sans-serif}.box{height:1600px;padding:20px}</style></head><body>' +
@@ -69,7 +69,7 @@ test('预览 e2e：右键菜单 / 设备切换 / 交互 / 跳转 / 关闭', { sk
 
     const readSelectionFile = () => {
       try {
-        return JSON.parse(readFileSync(join(cwd, '.tianshu-canvas', 'selection.json'), 'utf8'))
+        return JSON.parse(readFileSync(join(cwd, '.dsh-canvas', 'selection.json'), 'utf8'))
       } catch {
         return null
       }

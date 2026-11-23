@@ -27,12 +27,12 @@ body { color: #ff00aa; margin: 13px; font-family: Comic Sans MS, sans-serif; }
 
 async function workspace(styleId = 'apple') {
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-audit-'))
-  await tool('canvas_style').execute({ args: { action: 'set', style_id: styleId }, cwd, sessionId: 'test' })
+  await tool('dsh_canvas_style').execute({ args: { action: 'set', style_id: styleId }, cwd, sessionId: 'test' })
   return cwd
 }
 
 async function upsert(cwd, html, title = '页面') {
-  const res = await tool('canvas_upsert_page').execute({ args: { html, title, device_type: 'desktop' }, cwd, sessionId: 'test' })
+  const res = await tool('dsh_canvas_upsert_page').execute({ args: { html, title, device_type: 'desktop' }, cwd, sessionId: 'test' })
   assert.equal(res.isError, undefined, res.content)
   const id = /id=([A-Za-z0-9_-]+)/.exec(res.content)?.[1]
   assert.ok(id, res.content)
@@ -52,13 +52,13 @@ async function test(name, fn) {
 await test('contract：合规页面 score=1，脏页面命中且 score<1', async () => {
   const cwd = await workspace()
   await upsert(cwd, CLEAN_PAGE)
-  const clean = await tool('canvas_audit').execute({ args: { action: 'contract' }, cwd, sessionId: 'test' })
+  const clean = await tool('dsh_canvas_audit').execute({ args: { action: 'contract' }, cwd, sessionId: 'test' })
   assert.equal(clean.isError, undefined, clean.content)
   assert.match(clean.content, /符合度 100\.0%/)
 
   const cwd2 = await workspace()
   await upsert(cwd2, DIRTY_PAGE)
-  const dirty = await tool('canvas_audit').execute({ args: { action: 'contract' }, cwd: cwd2, sessionId: 'test' })
+  const dirty = await tool('dsh_canvas_audit').execute({ args: { action: 'contract' }, cwd: cwd2, sessionId: 'test' })
   assert.match(dirty.content, /符合度 \d+\.\d+%/)
   assert.doesNotMatch(dirty.content, /符合度 100\.0%/)
   assert.match(dirty.content, /契约外类：ts-made-up/)
@@ -68,7 +68,7 @@ await test('contract：write_files 产出可独立运行的测试文件，且没
   const cwd = await workspace()
   const id = await upsert(cwd, CLEAN_PAGE)
   const out = join(cwd, 'audit-out')
-  const res = await tool('canvas_audit').execute({ args: { action: 'contract', write_files: true, out_dir: out }, cwd, sessionId: 'test' })
+  const res = await tool('dsh_canvas_audit').execute({ args: { action: 'contract', write_files: true, out_dir: out }, cwd, sessionId: 'test' })
   assert.equal(res.isError, undefined, res.content)
   const files = [`${id}.html`, `${id}.audit.test.mjs`]
   for (const name of files) assert.ok(existsSync(join(out, name)), `缺少 ${name}`)
@@ -82,22 +82,22 @@ await test('contract：write_files 产出可独立运行的测试文件，且没
 await test('drift：首次写快照 → 无漂移；改页面后报新增/越界', async () => {
   const cwd = await workspace()
   const id = await upsert(cwd, CLEAN_PAGE)
-  const first = await tool('canvas_audit').execute({ args: { action: 'drift' }, cwd, sessionId: 'test' })
+  const first = await tool('dsh_canvas_audit').execute({ args: { action: 'drift' }, cwd, sessionId: 'test' })
   assert.equal(first.isError, undefined, first.content)
   assert.match(first.content, /已写入首个设计快照/)
-  assert.ok(existsSync(join(cwd, '.tianshu-canvas/audit/snapshot.json')))
+  assert.ok(existsSync(join(cwd, '.dsh-canvas/audit/snapshot.json')))
 
-  const same = await tool('canvas_audit').execute({ args: { action: 'drift' }, cwd, sessionId: 'test' })
+  const same = await tool('dsh_canvas_audit').execute({ args: { action: 'drift' }, cwd, sessionId: 'test' })
   assert.match(same.content, /未检测到漂移/)
 
   // 换风格 → 风格与 token 必须被检出；页面引用一个新变量 → 越界。
-  await tool('canvas_upsert_page').execute({
+  await tool('dsh_canvas_upsert_page').execute({
     args: { id, html: CLEAN_PAGE.replace('ts-btn--primary', 'ts-btn--primary ts-made-up') },
     cwd,
     sessionId: 'test',
   })
-  await tool('canvas_style').execute({ args: { action: 'set', style_id: 'nerv' }, cwd, sessionId: 'test' })
-  const drifted = await tool('canvas_audit').execute({ args: { action: 'drift' }, cwd, sessionId: 'test' })
+  await tool('dsh_canvas_style').execute({ args: { action: 'set', style_id: 'nerv' }, cwd, sessionId: 'test' })
+  const drifted = await tool('dsh_canvas_audit').execute({ args: { action: 'drift' }, cwd, sessionId: 'test' })
   assert.match(drifted.content, /风格：已更换/)
   assert.match(drifted.content, /token：已变/)
   assert.match(drifted.content, /越界 1 项/)
@@ -105,14 +105,14 @@ await test('drift：首次写快照 → 无漂移；改页面后报新增/越界
 
 await test('drift：自由发挥时给出可读错误', async () => {
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-audit-free-'))
-  const res = await tool('canvas_audit').execute({ args: { action: 'drift' }, cwd, sessionId: 'test' })
+  const res = await tool('dsh_canvas_audit').execute({ args: { action: 'drift' }, cwd, sessionId: 'test' })
   assert.equal(res.isError, true)
   assert.match(res.content, /需要已锁定的风格/)
 })
 
 await test('未知 action 返回可选清单', async () => {
   const cwd = await workspace()
-  const res = await tool('canvas_audit').execute({ args: { action: 'nope' }, cwd, sessionId: 'test' })
+  const res = await tool('dsh_canvas_audit').execute({ args: { action: 'nope' }, cwd, sessionId: 'test' })
   assert.equal(res.isError, true)
   assert.match(res.content, /contract \/ a11y \/ visual \/ baseline \/ drift/)
 })

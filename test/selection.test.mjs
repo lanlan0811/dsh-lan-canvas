@@ -1,5 +1,5 @@
 /**
- * 选中回传测试：写 selection.json 后 canvas_get_state 能读出选中项；无选中给友好文案。
+ * 选中回传测试：写 selection.json 后 dsh_canvas_get_state 能读出选中项；无选中给友好文案。
  */
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
@@ -14,17 +14,17 @@ const { tools } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')
 const cwd = mkdtempSync(join(tmpdir(), 'tsc-sel-'))
 try {
   // 无选中
-  const none = await tools.canvas_get_state.execute({ input: {}, cwd })
+  const none = await tools.dsh_canvas_get_state.execute({ input: {}, cwd })
   assert.ok(!none.isError)
   assert.match(none.content, /没有选中项/)
 
   // 先放一个页面节点，便于展示页面标题
-  const add = await tools.canvas_upsert_page.execute({ input: { html: '<h1>Hello</h1>', title: '登录页' }, cwd })
+  const add = await tools.dsh_canvas_upsert_page.execute({ input: { html: '<h1>Hello</h1>', title: '登录页' }, cwd })
   assert.ok(!add.isError, add.content)
   const id = add.content.match(/id=([\w-]+)/)[1]
 
   // 写入选中（模拟画布前端 POST /api/selection 落盘）
-  const dir = join(cwd, '.tianshu-canvas')
+  const dir = join(cwd, '.dsh-canvas')
   mkdirSync(dir, { recursive: true })
   writeFileSync(
     join(dir, 'selection.json'),
@@ -41,7 +41,7 @@ try {
     }),
   )
 
-  const sel = await tools.canvas_get_state.execute({ input: {}, cwd })
+  const sel = await tools.dsh_canvas_get_state.execute({ input: {}, cwd })
   assert.ok(!sel.isError)
   assert.match(sel.content, /登录页/)
   assert.match(sel.content, /<h1>/)

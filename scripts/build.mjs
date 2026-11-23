@@ -1,7 +1,7 @@
 /**
  * 构建脚本：esbuild 打包 Node 侧与 Web 侧，产物写入 dist/（提交进仓库）。
  *
- * 为什么产物要提交：天枢安装插件时只跑 `npm install --ignore-scripts --omit=dev`，
+ * 为什么产物要提交：DSH安装插件时只跑 `npm install --ignore-scripts --omit=dev`，
  * **永不执行构建脚本**，因此 dist/ 必须随仓库分发。
  *
  * 为什么 Node 侧是单文件：src/server.ts 是模块级单例；若拆成多文件，

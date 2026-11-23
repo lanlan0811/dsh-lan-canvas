@@ -91,7 +91,7 @@ export function toReactComponent(pageHtml: string, componentName = 'CanvasPage')
   if (!/^[A-Z][A-Za-z0-9_]*$/.test(componentName)) throw new Error('React component name must be an uppercase identifier.')
   const jsx = htmlToJsx(pageHtml)
   const css = pageCss(pageHtml)
-  const component = "/**\n * 由天枢画布生成。tokens.css / components.css 提供设计系统；layout.css 保留页面布局。\n * 静态结构导出：原型脚本和内联事件未迁移；Tab、筛选、分页等需接入 React 状态和事件。\n */\nimport type { CSSProperties } from 'react'\nimport './tokens.css'\nimport './components.css'\nimport './layout.css'\n\nexport default function " + componentName + "() {\n  return (\n    <>\n      " + jsx + "\n    </>\n  )\n}\n"
+  const component = "/**\n * 由 dsh-canvas 生成。tokens.css / components.css 提供设计系统；layout.css 保留页面布局。\n * 静态结构导出：原型脚本和内联事件未迁移；Tab、筛选、分页等需接入 React 状态和事件。\n */\nimport type { CSSProperties } from 'react'\nimport './tokens.css'\nimport './components.css'\nimport './layout.css'\n\nexport default function " + componentName + "() {\n  return (\n    <>\n      " + jsx + "\n    </>\n  )\n}\n"
   return [{ name: componentName + '.tsx', content: component, language: 'tsx' }, { name: 'layout.css', content: css, language: 'css' }]
 }
 
@@ -161,7 +161,7 @@ export function toTailwindConfig(input: TailwindInput): string {
     .map(([k, v]) => `        ${literal(k)}: ${literal(v)},`)
     .join('\n')
 
-  return `/** 由天枢画布生成：Tailwind 主题映射（值来自当前设计系统 tokens）。 */
+  return `/** 由 dsh-canvas 生成：Tailwind 主题映射（值来自当前设计系统 tokens）。 */
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./src/**/*.{html,js,jsx,ts,tsx}'],

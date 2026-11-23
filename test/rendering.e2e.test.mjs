@@ -41,16 +41,16 @@ test('渲染与只读编辑回归', { skip: !browserPath && '未找到浏览器'
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-render-'))
   let browser
   try {
-    const open = await tools.canvas_open.execute({ input: { port: 0 }, cwd })
+    const open = await tools.dsh_canvas_open.execute({ input: { port: 0 }, cwd })
     const url = open.content.match(/http:\/\/127\.0\.0\.1:\d+\/w\/[0-9a-f]{32}\/\?ws=[0-9a-f]{32}#[0-9a-f]{64}/)[0]
 
     const ids = {}
     for (const [name, html] of Object.entries(PAGES)) {
-      const added = await tools.canvas_upsert_page.execute({ input: { html, title: name }, cwd })
+      const added = await tools.dsh_canvas_upsert_page.execute({ input: { html, title: name }, cwd })
       assert.ok(!added.isError, added.content)
       ids[name] = added.content.match(/id=([\w-]+)/)[1]
     }
-    const fileOf = (name) => readFileSync(join(cwd, '.tianshu-canvas', 'pages', `${ids[name]}.html`), 'utf8')
+    const fileOf = (name) => readFileSync(join(cwd, '.dsh-canvas', 'pages', `${ids[name]}.html`), 'utf8')
 
     browser = await puppeteer.launch({
       executablePath: browserPath,
@@ -110,7 +110,7 @@ test('渲染与只读编辑回归', { skip: !browserPath && '未找到浏览器'
       buttons.find((b) => b.textContent?.trim() === '添加批注')?.click()
     })
     await sleep(900)
-    const project = JSON.parse(readFileSync(join(cwd, '.tianshu-canvas', 'project.json'), 'utf8'))
+    const project = JSON.parse(readFileSync(join(cwd, '.dsh-canvas', 'project.json'), 'utf8'))
     assert.equal(project.comments?.length, 1, '应写入一条批注')
     assert.equal(project.comments[0].note, '标题改短一点')
     assert.equal(project.comments[0].xpath, '/html[1]/body[1]/section[1]/h2[1]')
@@ -144,7 +144,7 @@ test('渲染与只读编辑回归', { skip: !browserPath && '未找到浏览器'
     assert.equal(first.tall, '2002px', '长页面应完整显示')
 
     // 5) 项目事件（如视口保存）后，测得的高度不丢
-    await tools.canvas_upsert_page.execute({ input: { id: ids.short, title: 'short-renamed' }, cwd })
+    await tools.dsh_canvas_upsert_page.execute({ input: { id: ids.short, title: 'short-renamed' }, cwd })
     await sleep(600)
     assert.equal(await heightOf('tall'), '2002px')
 
@@ -154,10 +154,10 @@ test('渲染与只读编辑回归', { skip: !browserPath && '未找到浏览器'
     await frameV.evaluate(() => {
       window.__marker = 1
     })
-    await tools.canvas_upsert_page.execute({ input: { id: ids.refresh, title: '只改标题' }, cwd })
+    await tools.dsh_canvas_upsert_page.execute({ input: { id: ids.refresh, title: '只改标题' }, cwd })
     await sleep(800)
     assert.equal(await (await frameOf('refresh')).evaluate(() => window.__marker), 1, '只改标题不应刷新 iframe')
-    await tools.canvas_upsert_page.execute({ input: { id: ids.refresh, html: doc('', '<h1 id="v">第二版</h1>') }, cwd })
+    await tools.dsh_canvas_upsert_page.execute({ input: { id: ids.refresh, html: doc('', '<h1 id="v">第二版</h1>') }, cwd })
     await sleep(1200)
     assert.equal(await (await frameOf('refresh')).$eval('#v', (e) => e.textContent), '第二版', '应显示新内容')
 

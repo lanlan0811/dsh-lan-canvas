@@ -18,7 +18,7 @@ after(() => fs.rmSync(apiDir, { recursive: true, force: true }))
 
 function fixture() {
   const cwd = fs.mkdtempSync(join(tmpdir(), 'tsc-transaction-'))
-  const dir = join(cwd, '.tianshu-canvas')
+  const dir = join(cwd, '.dsh-canvas')
   fs.mkdirSync(join(dir, 'pages'), { recursive: true })
   const file = join(dir, 'project.json')
   fs.writeFileSync(file, JSON.stringify({ version: 1, viewport: { x: 0, y: 0, zoom: 1 }, nodes: [], edges: [] }) + '\n')
@@ -26,7 +26,7 @@ function fixture() {
 }
 
 function node(id) {
-  return { id, type: 'page', title: id, x: 0, y: 0, width: 1440, height: 900, deviceType: 'desktop', htmlPath: `.tianshu-canvas/pages/${id}.html`, createdAt: 1, updatedAt: 1 }
+  return { id, type: 'page', title: id, x: 0, y: 0, width: 1440, height: 900, deviceType: 'desktop', htmlPath: `.dsh-canvas/pages/${id}.html`, createdAt: 1, updatedAt: 1 }
 }
 
 const workerFile = join(apiDir, 'worker.mjs')
@@ -49,7 +49,7 @@ process.on('message', message => {
           Atomics.wait(barrier, 0, 0, 5);
         }
       }
-      api.upsertNode(cwd, { id, type: 'page', title: id, x: 0, y: 0, width: 1440, height: 900, deviceType: 'desktop', htmlPath: '.tianshu-canvas/pages/' + id + '.html', createdAt: 1, updatedAt: 1 }, tx);
+      api.upsertNode(cwd, { id, type: 'page', title: id, x: 0, y: 0, width: 1440, height: 900, deviceType: 'desktop', htmlPath: '.dsh-canvas/pages/' + id + '.html', createdAt: 1, updatedAt: 1 }, tx);
     });
     process.send({ event: 'result', ok: true });
   } catch (error) {

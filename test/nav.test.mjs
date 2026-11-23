@@ -74,12 +74,12 @@ assert.ok(res.html.includes('<!-- <a href="详情.html">c</a> -->'), '注释内�
 // --- 写入路径：前向引用补齐 + 歧义报错 ---
 const cwd = mkdtempSync(join(tmpdir(), 'tsc-nav-'))
 const call = (name, args) => tools[name].execute({ input: args, cwd })
-const read = (id) => readFileSync(join(cwd, '.tianshu-canvas', 'pages', `${id}.html`), 'utf8')
+const read = (id) => readFileSync(join(cwd, '.dsh-canvas', 'pages', `${id}.html`), 'utf8')
 try {
-  await call('canvas_style', { action: 'set', style_id: 'apple' })
+  await call('dsh_canvas_style', { action: 'set', style_id: 'apple' })
 
   // 前向引用：先写首页链到「详情」，此时目标页还不存在
-  const a = await call('canvas_upsert_page', {
+  const a = await call('dsh_canvas_upsert_page', {
     title: '首页',
     html: '<html><head></head><body><a href="详情.html">去详情</a></body></html>',
   })
@@ -88,7 +88,7 @@ try {
   assert.ok(read(idA).includes('href="详情.html"'), '未解析时原样保留')
 
   // 建目标页 → 应自动补齐 A
-  const b = await call('canvas_upsert_page', {
+  const b = await call('dsh_canvas_upsert_page', {
     title: '详情',
     html: `<html><head></head><body><a data-nav="${idA}">回首页</a></body></html>`,
   })
@@ -98,7 +98,7 @@ try {
   assert.ok(read(idB).includes(`data-nav="${idA}"`) && read(idB).includes(`href="${idA}.html"`))
 
   // 未命中（永不解析）→ 成功 + 提示
-  const miss = await call('canvas_upsert_page', {
+  const miss = await call('dsh_canvas_upsert_page', {
     title: '孤立页',
     html: '<html><head></head><body><a href="nope.html">x</a></body></html>',
   })
@@ -106,8 +106,8 @@ try {
   assert.ok(/未匹配到页面/.test(miss.content))
 
   // 歧义：再加一个同名「详情」页，引用该 slug → isError 且列出候选
-  await call('canvas_upsert_page', { title: '详情', html: '<html><head></head><body>x</body></html>' })
-  const ambWrite = await call('canvas_upsert_page', {
+  await call('dsh_canvas_upsert_page', { title: '详情', html: '<html><head></head><body>x</body></html>' })
+  const ambWrite = await call('dsh_canvas_upsert_page', {
     title: '另一页',
     html: '<html><head></head><body><a href="详情.html">x</a></body></html>',
   })

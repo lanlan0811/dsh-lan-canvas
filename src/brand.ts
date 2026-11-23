@@ -1,7 +1,7 @@
 /**
  * 品牌记忆：把「这个项目长这样」沉淀成跨会话、跨页面的长期上下文。
  *
- * 存 `.tianshu-canvas/memory/brand.json`（工作区内，随 .tianshu-canvas/ 一起被 gitignore）。
+ * 存 `.dsh-canvas/memory/brand.json`（工作区内，随 .dsh-canvas/ 一起被 gitignore）。
  * 与 project.json 分开的原因：inspectProject 只重建已知字段，未知顶层字段会被写回时丢弃。
  *
  * 原则：
@@ -141,7 +141,7 @@ export function forgetStyle(cwd: string, styleId: string, tx?: ProjectTransactio
   writeMemory(cwd, memory, tx)
 }
 
-/** 一行摘要（给 canvas_get_state / design_system get 用）。 */
+/** 一行摘要（给 dsh_canvas_get_state / design_system get 用）。 */
 export function memorySummary(cwd: string, styleId: string): string | null {
   const style = readMemory(cwd).styles[styleId]
   if (!style) return null
@@ -212,7 +212,7 @@ export function verifyBrandPack(pack: unknown): string[] {
   return errors
 }
 
-/** 导出到文件（由调用方决定路径，默认 .tianshu-canvas/exports/<id>.json）。 */
+/** 导出到文件（由调用方决定路径，默认 .dsh-canvas/exports/<id>.json）。 */
 export function exportBrandPack(cwd: string, pack: BrandPack, file: string): void {
   // 稳定序列化：同一品牌包重复导出字节一致。
   const ordered = {

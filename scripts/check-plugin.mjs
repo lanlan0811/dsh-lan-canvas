@@ -95,7 +95,7 @@ async function main() {
   const manifest = parsedManifest.data
 
   if (manifest) {
-    if (!manifest.engines?.tianshu) fail('清单缺少 engines.tianshu（官方打包器要求声明天枢核心版本范围）')
+    if (!manifest.engines?.tianshu) fail('清单缺少 engines.tianshu（官方打包器要求声明DSH核心版本范围）')
     const names = manifest.contributes.tools.map((t) => t.name)
     if (names.length === 0 && manifest.contributes.lifecycle.length === 0) fail('agent 插件至少要贡献一个工具或一个生命周期阶段')
     if (names.length > 0 && !manifest.capabilities.includes('tools')) fail('声明了工具就必须在 capabilities 中列出 tools')

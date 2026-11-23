@@ -111,13 +111,13 @@ async function setup() {
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-preview-geometry-'))
   let browser
   try {
-    const result = await tools.canvas_open.execute({ input: { port: 0 }, cwd })
+    const result = await tools.dsh_canvas_open.execute({ input: { port: 0 }, cwd })
     const url = result.content.match(/http:\/\/127\.0\.0\.1:\d+\/w\/[0-9a-f]{32}\/\?ws=[0-9a-f]{32}#[0-9a-f]{64}/)?.[0]
     assert.ok(url, result.content)
-    const target = await tools.canvas_upsert_page.execute({ input: { title: '目标页', html: fixture.replace('__TARGET_PAGE__', 'missing') }, cwd })
+    const target = await tools.dsh_canvas_upsert_page.execute({ input: { title: '目标页', html: fixture.replace('__TARGET_PAGE__', 'missing') }, cwd })
     const targetId = target.content.match(/id=([\w-]+)/)?.[1]
     assert.ok(targetId, target.content)
-    const source = await tools.canvas_upsert_page.execute({ input: { title: '清晰度基线', html: fixture.replace('__TARGET_PAGE__', targetId), width: 375, height: 812 }, cwd })
+    const source = await tools.dsh_canvas_upsert_page.execute({ input: { title: '清晰度基线', html: fixture.replace('__TARGET_PAGE__', targetId), width: 375, height: 812 }, cwd })
     const sourceId = source.content.match(/id=([\w-]+)/)?.[1]
     assert.ok(sourceId, source.content)
     browser = await puppeteer.launch({ executablePath: browserPath, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] })
@@ -242,7 +242,7 @@ test('预览状态和交互：手选缩放/切页保留/切设备与重开重置
     await inputSize(page, 'width', 500)
     await inputSize(page, 'height', 500)
     frame = await ready(page)
-    const selectionPath = join(env.cwd, '.tianshu-canvas/selection.json')
+    const selectionPath = join(env.cwd, '.dsh-canvas/selection.json')
     const before = existsSync(selectionPath) ? readFileSync(selectionPath, 'utf8') : null
     await clickInPreview(page, '#click-target')
     await frame.waitForFunction(() => document.getElementById('click-count').textContent === '1')
@@ -291,7 +291,7 @@ test('预览适配极大尺寸：10000像素/窗口变化/滚动条切换稳定�
     const { page } = env
     await openPreview(page)
     await device(page, 'free')
-    const projectPath = join(env.cwd, '.tianshu-canvas/project.json')
+    const projectPath = join(env.cwd, '.dsh-canvas/project.json')
     const before = readFileSync(projectPath, 'utf8')
     await inputSize(page, 'width', 10000)
     await inputSize(page, 'height', 10000)

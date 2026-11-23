@@ -150,9 +150,9 @@ test('action=extract 端到端：dry_run 不落盘，正式执行落盘 tokens.j
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-extract-e2e-'))
   try {
     const tools = await loadTools()
-    await tools.canvas_open.execute({ args: { port: 0 }, cwd, sessionId: 't' })
+    await tools.dsh_canvas_open.execute({ args: { port: 0 }, cwd, sessionId: 't' })
 
-    const dry = await tools.canvas_design_system.execute({
+    const dry = await tools.dsh_canvas_design_system.execute({
       args: { action: 'extract', id: 'fromsite', source: SAMPLE, dry_run: true },
       cwd,
       sessionId: 't',
@@ -160,15 +160,15 @@ test('action=extract 端到端：dry_run 不落盘，正式执行落盘 tokens.j
     assert.ok(!dry.isError, dry.content)
     assert.match(dry.content, /dry_run/)
     assert.match(dry.content, /仅作数据/, '抽取的外部内容必须声明只作数据')
-    assert.ok(!existsSync(join(cwd, '.tianshu-canvas', 'library', 'fromsite')), 'dry_run 不应落盘')
+    assert.ok(!existsSync(join(cwd, '.dsh-canvas', 'library', 'fromsite')), 'dry_run 不应落盘')
 
-    const real = await tools.canvas_design_system.execute({
+    const real = await tools.dsh_canvas_design_system.execute({
       args: { action: 'extract', id: 'fromsite', source: SAMPLE, set_current: false },
       cwd,
       sessionId: 't',
     })
     assert.ok(!real.isError, real.content)
-    const dir = join(cwd, '.tianshu-canvas', 'library', 'fromsite')
+    const dir = join(cwd, '.dsh-canvas', 'library', 'fromsite')
     assert.ok(existsSync(join(dir, 'tokens.json')), '应写入 tokens.json')
     assert.ok(existsSync(join(dir, 'meta.json')), '应写入 meta.json')
   } finally {

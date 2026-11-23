@@ -27,7 +27,7 @@ async function harness(t) {
     else void request.continue()
   })
   const open = async (id, width = 1440) => {
-    const result = await tools.canvas_style.execute({ cwd, input: { action: 'prototype', prototype_id: id } })
+    const result = await tools.dsh_canvas_style.execute({ cwd, input: { action: 'prototype', prototype_id: id } })
     assert.ok(!result.isError, result.content)
     const doc = JSON.parse(result.content)
     await page.setViewport({ width, height: 1100 })

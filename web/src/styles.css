@@ -1,4 +1,4 @@
-/* 天枢画布样式：手绘白板 / 便签风（浅色单主题）。图标一律 SVG，不使用 emoji。
+/* DSH画布样式：手绘白板 / 便签风（浅色单主题）。图标一律 SVG，不使用 emoji。
    设计令牌见 tokens.css。类名钩子（.page-node* / .selection-panel* / .hint 等）为测试与导出依赖，勿改名。 */
 
 * {

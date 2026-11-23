@@ -2,7 +2,7 @@ import { backfillNavigation, clearNavigationCache } from './navigation.js'
 /**
  * 本地画布服务（127.0.0.1 单例）。
  *
- * 为什么是本地服务：天枢 TPI 插件是 headless 的，无法内嵌窗口，因此画布前端以
+ * 为什么是本地服务：DSH 插件是 headless 的，无法内嵌窗口，因此画布前端以
  * 「本地 HTTP 服务 + 浏览器打开」的方式呈现（方案 A）。
  *
  * 生命周期：模块级单例，跨工具调用存活；`unref()` 使其不阻塞宿主退出；
@@ -12,7 +12,7 @@ import { backfillNavigation, clearNavigationCache } from './navigation.js'
  *  - 只绑定 127.0.0.1；校验 Host 头。
  *  - 静态资源白名单（非目录遍历）。
  *  - 原型 HTML 视为不可信：iframe 无 allow-same-origin + `/page/:id` 严格 CSP + nosniff。
- *  - 变更路由要求自定义头 `X-Tianshu-Canvas: 1`（跨源无法带自定义头 → 天然防 CSRF）。
+ *  - 变更路由要求自定义头 `X-DSH-Canvas: 1`（跨源无法带自定义头 → 天然防 CSRF）。
  */
 import http from 'node:http'
 import { randomBytes, timingSafeEqual } from 'node:crypto'
@@ -50,7 +50,7 @@ import {
 const WEB_DIR = fileURLToPath(new URL('./web/', import.meta.url))
 
 const DEFAULT_PORT = 43117
-const MUTATION_HEADER = 'x-tianshu-canvas'
+const MUTATION_HEADER = 'x-dsh-canvas'
 const MAX_BODY = 4 * 1024 * 1024
 /** 视口请求体很小，沿用比通用 JSON 更紧的上限。 */
 const MAX_VIEWPORT_BODY = 4096

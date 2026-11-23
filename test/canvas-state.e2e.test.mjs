@@ -23,16 +23,16 @@ test('画布状态回归', { skip: !browserPath && '未找到浏览器' }, async
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-state-'))
   let browser
   try {
-    const open = await tools.canvas_open.execute({ input: { port: 0 }, cwd })
+    const open = await tools.dsh_canvas_open.execute({ input: { port: 0 }, cwd })
     const url = open.content.match(/http:\/\/127\.0\.0\.1:\d+\/w\/[0-9a-f]{32}\/\?ws=[0-9a-f]{32}#[0-9a-f]{64}/)[0]
     const { origin, searchParams } = new URL(url)
     const ws = searchParams.get('ws')
-    const added = await tools.canvas_upsert_page.execute({
+    const added = await tools.dsh_canvas_upsert_page.execute({
       input: { html: '<!doctype html><html><head></head><body><h1>页面</h1></body></html>', title: '原标题', device_type: 'mobile' },
       cwd,
     })
     const id = added.content.match(/id=([\w-]+)/)[1]
-    const savedViewport = () => JSON.parse(readFileSync(join(cwd, '.tianshu-canvas', 'project.json'), 'utf8')).viewport
+    const savedViewport = () => JSON.parse(readFileSync(join(cwd, '.dsh-canvas', 'project.json'), 'utf8')).viewport
 
     browser = await puppeteer.launch({
       executablePath: browserPath,
@@ -76,7 +76,7 @@ test('画布状态回归', { skip: !browserPath && '未找到浏览器' }, async
     assert.notEqual(savedViewport().y, 0, '平移后视口应保存')
 
     // 3) 项目刷新（AI 改标题）：内容更新，选中保留
-    await tools.canvas_upsert_page.execute({ input: { id, title: '新标题' }, cwd })
+    await tools.dsh_canvas_upsert_page.execute({ input: { id, title: '新标题' }, cwd })
     await sleep(800)
     now = await state()
     assert.equal(now.title, '新标题', '项目刷新应更新内容')
@@ -99,7 +99,7 @@ test('画布状态回归', { skip: !browserPath && '未找到浏览器' }, async
     // 6) 保存的视口看不到任何节点时：回退到适应视图，避免打开是一片空白
     const res = await fetch(`${origin}/api/viewport`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1' },
+      headers: { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1' },
       body: JSON.stringify({ ws, x: 100000, y: 100000, zoom: 1 }),
     })
     assert.equal(res.status, 200)

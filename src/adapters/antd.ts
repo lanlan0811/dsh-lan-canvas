@@ -207,7 +207,7 @@ export const antdAdapter: Adapter = {
     const body = renderNodes(nodes, ctx, used)
     const antComponents = [...used].filter((n) => !['Flex', 'Row', 'Col'].includes(n)).sort()
     const antImport = antComponents.length ? `import { ${antComponents.join(', ')} } from 'antd'` : ''
-    const page = `// 由 Tianshu-Canvas 生成（风格：${ctx.styleName}）。\n'use client'\n\nimport React from 'react'\n${antImport}\nimport { theme } from './theme'\n\nexport default function App() {\n  return (\n    <ConfigProvider theme={theme}>\n${indent(body, 6)}\n    </ConfigProvider>\n  )\n}\n`.replace('import { theme } from', 'import { theme } from')
+    const page = `// 由 dsh-canvas 生成（风格：${ctx.styleName}）。\n'use client'\n\nimport React from 'react'\n${antImport}\nimport { theme } from './theme'\n\nexport default function App() {\n  return (\n    <ConfigProvider theme={theme}>\n${indent(body, 6)}\n    </ConfigProvider>\n  )\n}\n`.replace('import { theme } from', 'import { theme } from')
 
     // ConfigProvider 必须在 components 里导入。
     const pageWithProvider = page.replace(/import \{ ([^}]*) \} from 'antd'/, (_m, list: string) =>
@@ -410,11 +410,11 @@ function renderTheme(ctx: AdapterContext): string {
   const m = (path: string): string => semanticValue(ctx, path)
   const radius = ctx.radius.md ?? 6
   const sans = ctx.vars['--ts-font-sans'] ?? 'system-ui'
-  return `// 由 Tianshu-Canvas 生成（风格：${ctx.styleName}）。\n// 所有颜色集中在这里，页面代码不硬编码色值。\nimport type { ThemeConfig } from 'antd'\n\nexport const theme: ThemeConfig = {\n  token: {\n    colorPrimary: '${m('action.primary')}',\n    colorSuccess: '${m('status.success')}',\n    colorWarning: '${m('status.warning')}',\n    colorError: '${m('action.danger')}',\n    colorInfo: '${m('status.info')}',\n    colorBgBase: '${m('bg.surface')}',\n    colorTextBase: '${m('text.primary')}',\n    colorBorder: '${m('border.default')}',\n    borderRadius: ${radius},\n    fontFamily: ${JSON.stringify(sans)},\n  },\n}\n`
+  return `// 由 dsh-canvas 生成（风格：${ctx.styleName}）。\n// 所有颜色集中在这里，页面代码不硬编码色值。\nimport type { ThemeConfig } from 'antd'\n\nexport const theme: ThemeConfig = {\n  token: {\n    colorPrimary: '${m('action.primary')}',\n    colorSuccess: '${m('status.success')}',\n    colorWarning: '${m('status.warning')}',\n    colorError: '${m('action.danger')}',\n    colorInfo: '${m('status.info')}',\n    colorBgBase: '${m('bg.surface')}',\n    colorTextBase: '${m('text.primary')}',\n    colorBorder: '${m('border.default')}',\n    borderRadius: ${radius},\n    fontFamily: ${JSON.stringify(sans)},\n  },\n}\n`
 }
 
 function renderReadme(ctx: AdapterContext): string {
-  return `# 落地说明（由 Tianshu-Canvas 生成）
+  return `# 落地说明（由 dsh-canvas 生成）
 
 1. \`npm i antd\`（v5）。
 2. \`src/theme.ts\` 已按设计 token 生成 ConfigProvider 主题；如需改动，只改这里。

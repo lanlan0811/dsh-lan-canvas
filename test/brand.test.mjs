@@ -11,8 +11,8 @@ import { loadPlugin } from './helpers/host.mjs'
 const root = resolve(import.meta.dirname, '..')
 const { api } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
 const tool = (name) => api.tools.find((t) => t.name === name)
-const designTool = tool('canvas_design_system')
-const styleTool = tool('canvas_style')
+const designTool = tool('dsh_canvas_design_system')
+const styleTool = tool('dsh_canvas_style')
 
 const PAGE = `<!doctype html><html><body>
 <div class="ts-app"><button class="ts-btn ts-btn--primary">新建</button>
@@ -104,12 +104,12 @@ await test('品牌包：跨工作区导入后 token 与使用记忆恢复，重�
   const res = await designTool.execute({ args: { action: 'import_pack', pack_path: packFile }, cwd: target, sessionId: 'test' })
   assert.equal(res.isError, undefined, res.content)
   assert.match(res.content, /已导入品牌包/)
-  assert.ok(existsSync(join(target, '.tianshu-canvas/library/brand-c/tokens.json')))
-  assert.ok(existsSync(join(target, '.tianshu-canvas/library/brand-c/meta.json')))
+  assert.ok(existsSync(join(target, '.dsh-canvas/library/brand-c/tokens.json')))
+  assert.ok(existsSync(join(target, '.dsh-canvas/library/brand-c/meta.json')))
 
   // 导入后编译出的 tokens 与源工作区一致（视觉一致的强约束）。
-  const manifestA = JSON.parse(readFileSync(join(source, '.tianshu-canvas/library/brand-c/tokens.json'), 'utf8'))
-  const manifestB = JSON.parse(readFileSync(join(target, '.tianshu-canvas/library/brand-c/tokens.json'), 'utf8'))
+  const manifestA = JSON.parse(readFileSync(join(source, '.dsh-canvas/library/brand-c/tokens.json'), 'utf8'))
+  const manifestB = JSON.parse(readFileSync(join(target, '.dsh-canvas/library/brand-c/tokens.json'), 'utf8'))
   assert.deepEqual(manifestB, manifestA)
 
   const again = await designTool.execute({ args: { action: 'import_pack', pack_path: packFile }, cwd: target, sessionId: 'test' })
@@ -143,7 +143,7 @@ await test('删除风格同步清理品牌记忆（不留悬空引用）', async
   const cwd = await workspace()
   await createStyle(cwd, 'brand-d')
   await codegen(cwd)
-  const memoryFile = join(cwd, '.tianshu-canvas/memory/brand.json')
+  const memoryFile = join(cwd, '.dsh-canvas/memory/brand.json')
   assert.ok(existsSync(memoryFile))
   assert.ok(JSON.parse(readFileSync(memoryFile, 'utf8')).styles['brand-d'])
   await designTool.execute({ args: { action: 'remove', id: 'brand-d' }, cwd, sessionId: 'test' })
@@ -154,20 +154,20 @@ await test('删除风格同步清理品牌记忆（不留悬空引用）', async
 await test('记忆文件损坏时降级为空记忆，不影响其它功能', async () => {
   const cwd = await workspace()
   await createStyle(cwd, 'brand-e')
-  mkdirSync(join(cwd, '.tianshu-canvas/memory'), { recursive: true })
-  writeFileSync(join(cwd, '.tianshu-canvas/memory/brand.json'), '{broken', 'utf8')
+  mkdirSync(join(cwd, '.dsh-canvas/memory'), { recursive: true })
+  writeFileSync(join(cwd, '.dsh-canvas/memory/brand.json'), '{broken', 'utf8')
   await codegen(cwd)
   const get = await designTool.execute({ args: { action: 'get', id: 'brand-e' }, cwd, sessionId: 'test' })
   assert.equal(get.isError, undefined, get.content)
-  const healed = JSON.parse(readFileSync(join(cwd, '.tianshu-canvas/memory/brand.json'), 'utf8'))
+  const healed = JSON.parse(readFileSync(join(cwd, '.dsh-canvas/memory/brand.json'), 'utf8'))
   assert.equal(healed.schemaVersion, 1)
 })
 
-await test('canvas_get_state 展示品牌记忆摘要', async () => {
+await test('dsh_canvas_get_state 展示品牌记忆摘要', async () => {
   const cwd = await workspace()
   await createStyle(cwd, 'brand-f')
   await codegen(cwd)
-  const state = await tool('canvas_get_state').execute({ args: {}, cwd, sessionId: 'test' })
+  const state = await tool('dsh_canvas_get_state').execute({ args: {}, cwd, sessionId: 'test' })
   assert.match(state.content, /品牌记忆：1 个来源/)
 })
 

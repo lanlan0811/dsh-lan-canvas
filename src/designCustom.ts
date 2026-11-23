@@ -1,5 +1,5 @@
 /**
- * 用户自定义设计系统：读写工作区 `.tianshu-canvas/library/`，并在运行时把
+ * 用户自定义设计系统：读写工作区 `.dsh-canvas/library/`，并在运行时把
  * `tokens.json` + `meta.json` 编译成与内置风格同形的 {@link ResolvedStyle}。
  *
  * 为什么在这里编译：内置风格在构建期由 scripts/build-design.mjs 编到 dist/design/；

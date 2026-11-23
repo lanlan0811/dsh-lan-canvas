@@ -13,7 +13,7 @@ const root = resolve(import.meta.dirname, '..')
 const { tools } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
 
 async function lint(html, styleId = 'claude') {
-  const res = await tools.canvas_check_style.execute({ input: { html, style_id: styleId }, cwd: process.cwd() })
+  const res = await tools.dsh_canvas_check_style.execute({ input: { html, style_id: styleId }, cwd: process.cwd() })
   assert.ok(!res.isError || res.content.length > 0)
   return res.content
 }
@@ -56,17 +56,17 @@ test('风格检查：真阴性不误报', async () => {
 })
 
 test('风格检查：注入块自身不被误报', async () => {
-  const set = await tools.canvas_style.execute({ input: { action: 'set', style_id: 'claude' }, cwd: process.cwd() })
+  const set = await tools.dsh_canvas_style.execute({ input: { action: 'set', style_id: 'claude' }, cwd: process.cwd() })
   assert.ok(!set.isError, set.content)
   const html = '<p style="color:var(--ts-color-text-primary)">正文</p>'
-  const check = await tools.canvas_check_style.execute({ input: { html }, cwd: process.cwd() })
+  const check = await tools.dsh_canvas_check_style.execute({ input: { html }, cwd: process.cwd() })
   assert.match(check.content, /未发现不符合项/, check.content)
 })
 
 test('风格检查：自由发挥只查资源引用', async () => {
   const free = mkdtempSync(join(tmpdir(), 'tsc-lint-free-'))
   try {
-    const res = await tools.canvas_check_style.execute({
+    const res = await tools.dsh_canvas_check_style.execute({
       input: { html: '<link rel="stylesheet" href="https://cdn.example.com/a.css"><p style="color:#fff">x</p>' },
       cwd: free,
     })
@@ -81,12 +81,12 @@ test('风格检查：自由发挥只查资源引用', async () => {
 test('风格检查：page_id 不存在时报错，检查结果永不 isError', async () => {
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-lint-page-'))
   try {
-    const missing = await tools.canvas_check_style.execute({ input: { page_id: 'page-deadbeef' }, cwd })
+    const missing = await tools.dsh_canvas_check_style.execute({ input: { page_id: 'page-deadbeef' }, cwd })
     assert.equal(missing.isError, true)
 
-    await tools.canvas_style.execute({ input: { action: 'set', style_id: 'apple' }, cwd })
-    await tools.canvas_upsert_page.execute({ input: { html: '<p style="padding:13px">x</p>', title: 'P' }, cwd })
-    const all = await tools.canvas_check_style.execute({ input: {}, cwd })
+    await tools.dsh_canvas_style.execute({ input: { action: 'set', style_id: 'apple' }, cwd })
+    await tools.dsh_canvas_upsert_page.execute({ input: { html: '<p style="padding:13px">x</p>', title: 'P' }, cwd })
+    const all = await tools.dsh_canvas_check_style.execute({ input: {}, cwd })
     assert.ok(!all.isError, all.content)
     assert.match(all.content, /\[spacing\]/, all.content)
   } finally {

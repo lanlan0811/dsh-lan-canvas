@@ -1,7 +1,7 @@
 /**
  * 代码生成：HTML→JSX、Tailwind 配置、CSS 变量 + 无框架 HTML；
  * 多端（ios/android/miniprogram）的 Token 文件与 design-spec.md。
- * 通过 canvas_style action=codegen 端到端走工具层。
+ * 通过 dsh_canvas_style action=codegen 端到端走工具层。
  */
 import assert from 'node:assert/strict'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
@@ -22,8 +22,8 @@ const { tools } = await (async () => {
 /** 建一个临时工作区并锁定内置风格 apple，返回 cwd 与清理函数。 */
 async function setup() {
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-codegen-'))
-  await tools.canvas_open.execute({ args: { port: 0 }, cwd, sessionId: 't' })
-  const setResult = await tools.canvas_style.execute({ args: { action: 'set', style_id: 'apple' }, cwd, sessionId: 't' })
+  await tools.dsh_canvas_open.execute({ args: { port: 0 }, cwd, sessionId: 't' })
+  const setResult = await tools.dsh_canvas_style.execute({ args: { action: 'set', style_id: 'apple' }, cwd, sessionId: 't' })
   assert.match(setResult.content, /已锁定设计风格/)
   return { cwd, cleanup: () => rmSync(cwd, { recursive: true, force: true }) }
 }
@@ -31,7 +31,7 @@ async function setup() {
 test('codegen react：HTML→JSX（className、style 对象、自闭合）', async () => {
   const { cwd, cleanup } = await setup()
   try {
-    const result = await tools.canvas_style.execute({
+    const result = await tools.dsh_canvas_style.execute({
       args: {
         action: 'codegen',
         target: 'react',
@@ -54,7 +54,7 @@ test('codegen react：HTML→JSX（className、style 对象、自闭合）', asy
 test('codegen css-vars：产出 index.html + tokens.css + components.css', async () => {
   const { cwd, cleanup } = await setup()
   try {
-    const result = await tools.canvas_style.execute({
+    const result = await tools.dsh_canvas_style.execute({
       args: { action: 'codegen', target: 'css-vars', html: '<body><div class="ts-card">hi</div></body>' },
       cwd,
       sessionId: 't',
@@ -72,7 +72,7 @@ test('codegen css-vars：产出 index.html + tokens.css + components.css', async
 test('codegen tailwind：配置含主题键与真实色值', async () => {
   const { cwd, cleanup } = await setup()
   try {
-    const result = await tools.canvas_style.execute({
+    const result = await tools.dsh_canvas_style.execute({
       args: { action: 'codegen', target: 'tailwind', html: '<div class="ts-card"></div>' },
       cwd,
       sessionId: 't',
@@ -91,7 +91,7 @@ test('codegen tailwind：配置含主题键与真实色值', async () => {
 test('codegen 多端：ios/swiftui 出 Swift 主题与规格，含真实色值', async () => {
   const { cwd, cleanup } = await setup()
   try {
-    const result = await tools.canvas_style.execute({
+    const result = await tools.dsh_canvas_style.execute({
       args: { action: 'codegen', target: 'ios', stack: 'swiftui', html: '<div></div>' },
       cwd,
       sessionId: 't',
@@ -117,7 +117,7 @@ test('codegen 多端：android/compose、miniprogram/weapp 均产出', async () 
       ['miniprogram', 'uniapp', /uni\.scss/],
       ['miniprogram', 'taro', /app\.scss/],
     ]) {
-      const result = await tools.canvas_style.execute({ args: { action: 'codegen', target, stack, html: '<div></div>' }, cwd, sessionId: 't' })
+      const result = await tools.dsh_canvas_style.execute({ args: { action: 'codegen', target, stack, html: '<div></div>' }, cwd, sessionId: 't' })
       assert.ok(!result.isError, `${target}/${stack}: ${result.content}`)
       assert.match(result.content, expect, `${target}/${stack} 应含 ${expect}`)
       assert.match(result.content, /design-spec\.md/)
@@ -130,7 +130,7 @@ test('codegen 多端：android/compose、miniprogram/weapp 均产出', async () 
 test('codegen 多端：stack 与 target 不匹配时报错', async () => {
   const { cwd, cleanup } = await setup()
   try {
-    const result = await tools.canvas_style.execute({
+    const result = await tools.dsh_canvas_style.execute({
       args: { action: 'codegen', target: 'ios', stack: 'compose', html: '<div></div>' },
       cwd,
       sessionId: 't',
@@ -145,7 +145,7 @@ test('codegen 多端：stack 与 target 不匹配时报错', async () => {
 test('codegen 缺 target 时提示先问用户（不臆测）', async () => {
   const { cwd, cleanup } = await setup()
   try {
-    const result = await tools.canvas_style.execute({ args: { action: 'codegen' }, cwd, sessionId: 't' })
+    const result = await tools.dsh_canvas_style.execute({ args: { action: 'codegen' }, cwd, sessionId: 't' })
     assert.equal(result.isError, true)
     assert.match(result.content, /先问用户/)
   } finally {
@@ -153,17 +153,17 @@ test('codegen 缺 target 时提示先问用户（不臆测）', async () => {
   }
 })
 
-test('codegen write_files：写到 .tianshu-canvas/exports 下', async () => {
+test('codegen write_files：写到 .dsh-canvas/exports 下', async () => {
   const { cwd, cleanup } = await setup()
   try {
-    const result = await tools.canvas_style.execute({
+    const result = await tools.dsh_canvas_style.execute({
       args: { action: 'codegen', target: 'android', stack: 'compose', html: '<div></div>', write_files: true },
       cwd,
       sessionId: 't',
     })
     assert.ok(!result.isError, result.content)
     assert.match(result.content, /exports/)
-    const colorKt = join(cwd, '.tianshu-canvas', 'exports', 'android', 'Color.kt')
+    const colorKt = join(cwd, '.dsh-canvas', 'exports', 'android', 'Color.kt')
     // Kotlin 用 ARGB 字面量：apple 主色 #0071e3 → 0xFF0071E3
     assert.match(readFileSync(colorKt, 'utf8'), /0xFF0071E3/i)
   } finally {
@@ -174,8 +174,8 @@ test('codegen write_files：写到 .tianshu-canvas/exports 下', async () => {
 test('多端生成是确定性的（同输入同输出）', async () => {
   const { cwd, cleanup } = await setup()
   try {
-    const a = await tools.canvas_style.execute({ args: { action: 'codegen', target: 'miniprogram', stack: 'weapp', html: '<div></div>' }, cwd, sessionId: 't' })
-    const b = await tools.canvas_style.execute({ args: { action: 'codegen', target: 'miniprogram', stack: 'weapp', html: '<div></div>' }, cwd, sessionId: 't' })
+    const a = await tools.dsh_canvas_style.execute({ args: { action: 'codegen', target: 'miniprogram', stack: 'weapp', html: '<div></div>' }, cwd, sessionId: 't' })
+    const b = await tools.dsh_canvas_style.execute({ args: { action: 'codegen', target: 'miniprogram', stack: 'weapp', html: '<div></div>' }, cwd, sessionId: 't' })
     assert.equal(a.content, b.content)
   } finally {
     cleanup()

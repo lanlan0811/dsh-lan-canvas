@@ -7,13 +7,13 @@ import { assertInsideWorkspace } from './paths.js'
 export class WorkspaceBusyError extends Error {
   readonly code = 'WORKSPACE_BUSY'
   constructor() {
-    super('工作区正在执行其它写入，请稍后重试；若宿主异常退出，请关闭相关宿主后人工清理 .tianshu-canvas 中的 project.lock。')
+    super('工作区正在执行其它写入，请稍后重试；若宿主异常退出，请关闭相关宿主后人工清理 .dsh-canvas 中的 project.lock。')
     this.name = 'WorkspaceBusyError'
   }
 }
 
 export function withWorkspaceLock<T>(cwd: string, action: (assertOwnership: () => void) => T): T {
-  const dir = join(cwd, '.tianshu-canvas')
+  const dir = join(cwd, '.dsh-canvas')
   assertInsideWorkspace(cwd, dir, '项目目录')
   mkdirSync(dir, { recursive: true })
   assertInsideWorkspace(cwd, dir, '项目目录')

@@ -61,8 +61,8 @@ function listZipEntries(buf) {
 const cwd = mkdtempSync(join(tmpdir(), 'tsc-exp-'))
 try {
   // 锁定风格，才能产出共享 CSS 与多页站；页面用 slug / data-nav 写法互链，B 另含内联脚本与交互。
-  await tools.canvas_style.execute({ input: { action: 'set', style_id: 'apple' }, cwd })
-  const b = await tools.canvas_upsert_page.execute({
+  await tools.dsh_canvas_style.execute({ input: { action: 'set', style_id: 'apple' }, cwd })
+  const b = await tools.dsh_canvas_upsert_page.execute({
     input: {
       html: '<html><head></head><body><div class="ts-tabs" data-ts-tabs><button class="ts-tab ts-tab--active" data-ts-tab="x">X</button></div><div data-ts-panel="x"><script>document.title="t"</script>内容</div><h1>B</h1></body></html>',
       title: '详情页',
@@ -71,7 +71,7 @@ try {
   })
   const idB = b.content.match(/id=([\w-]+)/)[1]
   // A 用标题 slug 链到 B（写入时应规范化成 <idB>.html）；再加一条 data-nav 自链。
-  const a = await tools.canvas_upsert_page.execute({
+  const a = await tools.dsh_canvas_upsert_page.execute({
     input: {
       html: `<html><head></head><body><a href="详情页.html">去B</a><a data-nav="${idB}">再来</a><h1>A</h1></body></html>`,
       title: '首页',
@@ -81,7 +81,7 @@ try {
   const idA = a.content.match(/id=([\w-]+)/)[1]
 
   // 起本地服务（画布顶栏导出走的就是这条 HTTP 路由）
-  const open = await tools.canvas_open.execute({ input: { port: 0 }, cwd })
+  const open = await tools.dsh_canvas_open.execute({ input: { port: 0 }, cwd })
   assert.ok(!open.isError, open.content)
   const m = open.content.match(/http:\/\/127\.0\.0\.1:\d+\/w\/[0-9a-f]{32}\/\?ws=[0-9a-f]{32}#[0-9a-f]{64}/)
   assert.ok(m, `未返回合法 URL: ${open.content}`)
@@ -90,7 +90,7 @@ try {
   const post = (body) =>
     fetch(`${base}/api/export`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1' },
+      headers: { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1' },
       body: JSON.stringify({ ws: token, ...body }),
     })
 

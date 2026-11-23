@@ -35,7 +35,7 @@ test('review rejects invalid/missing page and outside directory before browser l
     await assert.rejects(api.reviewPage(cwd, 'one', { outputDir: '../outside' }), /工作区/)
     await assert.rejects(api.reviewPage(cwd, 'one', { outputDir: '' }), /非空/)
     assert.equal(existsSync(join(base, 'outside')), false)
-    assert.equal(existsSync(join(cwd, '.tianshu-canvas', 'audit')), false)
+    assert.equal(existsSync(join(cwd, '.dsh-canvas', 'audit')), false)
   } finally { rmSync(base, { recursive: true, force: true }) }
 })
 
@@ -56,8 +56,8 @@ test('review renders authenticated opaque iframe at all widths, captures full co
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-review-render-'))
   try {
     addPage(cwd, 'one', '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><style>*{box-sizing:border-box}html,body{margin:0;padding:0}main{padding:24px;min-height:1800px}h1{font:700 32px sans-serif}.clipped{width:80px;overflow:hidden;white-space:nowrap}button{padding:12px}@media(max-width:500px){h1{font-size:24px}}</style></head><body><main><h1>审阅测试</h1><button type="button">开始体验</button><p class="clipped">这是一段可能被裁切的足够长的文字。</p><div id="end" style="margin-top:1450px;height:60px;background:rgb(210,20,30)">页尾证据</div></main><script>try{parent.document.body.dataset.escape="unsafe"}catch(e){document.body.dataset.isolated="true"}setTimeout(()=>{throw Error("review-script-fixture")},20)</script></body></html>')
-    const projectFile = join(cwd, '.tianshu-canvas', 'project.json')
-    const pageFile = join(cwd, '.tianshu-canvas', 'pages', 'one.html')
+    const projectFile = join(cwd, '.dsh-canvas', 'project.json')
+    const pageFile = join(cwd, '.dsh-canvas', 'pages', 'one.html')
     const projectBefore = readFileSync(projectFile, 'utf8'); const pageBefore = readFileSync(pageFile, 'utf8')
     const result = await api.reviewPage(cwd, 'one')
     assert.equal(result.visualAssessment, 'requires-human-review')
@@ -96,7 +96,7 @@ test('review renders authenticated opaque iframe at all widths, captures full co
     for (const capture of result.captures) assert.ok(isAbsolute(capture.path), capture.path)
     assert.equal(readFileSync(projectFile, 'utf8'), projectBefore)
     assert.equal(readFileSync(pageFile, 'utf8'), pageBefore)
-    assert.equal(existsSync(join(cwd, '.tianshu-canvas', 'selection.json')), false)
+    assert.equal(existsSync(join(cwd, '.dsh-canvas', 'selection.json')), false)
     const second = await api.reviewPage(cwd, 'one')
     assert.notEqual(second.outputDir, result.outputDir, '重复审阅不能覆盖旧证据')
   } finally { await api.shutdownForTests(); rmSync(cwd, { recursive: true, force: true }) }

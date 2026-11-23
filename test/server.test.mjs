@@ -14,7 +14,7 @@ const { tools } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')
 
 const cwd = mkdtempSync(join(tmpdir(), 'tsc-srv-'))
 try {
-  const open = await tools.canvas_open.execute({ input: { port: 0 }, cwd })
+  const open = await tools.dsh_canvas_open.execute({ input: { port: 0 }, cwd })
   assert.ok(!open.isError, open.content)
   const m = open.content.match(/http:\/\/127\.0\.0\.1:\d+\/w\/[0-9a-f]{32}\/\?ws=[0-9a-f]{32}#[0-9a-f]{64}/)
   assert.ok(m, `未返回合法 URL: ${open.content}`)
@@ -43,7 +43,7 @@ try {
   assert.equal(before.nodes.length, 0)
 
   // 添加一页
-  const add = await tools.canvas_upsert_page.execute({ input: { html: '<h1>P</h1>', title: 'P' }, cwd })
+  const add = await tools.dsh_canvas_upsert_page.execute({ input: { html: '<h1>P</h1>', title: 'P' }, cwd })
   assert.ok(!add.isError, add.content)
 
   // 项目里出现该节点
@@ -82,7 +82,7 @@ try {
   // 选中：写 → 读
   const selRes = await fetch(`${base}/api/selection`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1' },
+    headers: { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1' },
     body: JSON.stringify({
       ws: token,
       pageId: id,
@@ -118,7 +118,7 @@ try {
   // 带自定义头 → 200
   const okHeader = await fetch(`${base}/api/viewport`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1' },
+    headers: { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1' },
     body: JSON.stringify({ ws: token, x: 10, y: 20, zoom: 1.5 }),
   })
   assert.equal(okHeader.status, 200)
@@ -142,10 +142,10 @@ try {
   ])
   assert.ok(catalog.notice.includes('无隶属'))
 
-  // 画布 UI 不再提供风格切换：/api/design 已移除（AI 侧走 canvas_style 工具）
+  // 画布 UI 不再提供风格切换：/api/design 已移除（AI 侧走 dsh_canvas_style 工具）
   const designGone = await fetch(`${base}/api/design`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1' },
+    headers: { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1' },
     body: JSON.stringify({ ws: token, styleId: 'claude' }),
   })
   assert.equal(designGone.status, 404)

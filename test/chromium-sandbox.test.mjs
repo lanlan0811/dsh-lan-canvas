@@ -65,19 +65,19 @@ test('原包截图与视觉审计启动的 Chromium 保留沙箱', { skip: proce
     }
   }
   try {
-    const added = await tools.canvas_upsert_page.execute({ cwd, input: { id: 'sandbox', title: 'sandbox', html: '<h1>synthetic</h1>' } })
+    const added = await tools.dsh_canvas_upsert_page.execute({ cwd, input: { id: 'sandbox', title: 'sandbox', html: '<h1>synthetic</h1>' } })
     assert.equal(added.isError, undefined)
-    const opened = await tools.canvas_open.execute({ cwd, input: { port: 0 } })
+    const opened = await tools.dsh_canvas_open.execute({ cwd, input: { port: 0 } })
     const url = new URL(opened.content.match(/http:\/\/127\.0\.0\.1:\d+\/w\/[0-9a-f]{32}\/\?ws=[0-9a-f]{32}#[0-9a-f]{64}/)[0])
     const png = await observe(async () => {
-      const res = await rawFetch(`${url.origin}/api/export`, { method: 'POST', headers: { Authorization: `Bearer ${url.hash.slice(1)}`, 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1' }, body: JSON.stringify({ ws: url.searchParams.get('ws'), kind: 'png' }) })
+      const res = await rawFetch(`${url.origin}/api/export`, { method: 'POST', headers: { Authorization: `Bearer ${url.hash.slice(1)}`, 'Content-Type': 'application/json', 'X-DSH-Canvas': '1' }, body: JSON.stringify({ ws: url.searchParams.get('ws'), kind: 'png' }) })
       assert.equal(res.status, 200)
       const result = await res.json()
       assert.ok(result.files?.some((f) => f.name.endsWith('.png')), result.pngError)
       return result
     })
     assert.ok(png.files.length)
-    const visual = await observe(() => tools.canvas_audit.execute({ cwd, input: { action: 'baseline' } }))
+    const visual = await observe(() => tools.dsh_canvas_audit.execute({ cwd, input: { action: 'baseline' } }))
     assert.equal(visual.isError, undefined, visual.content)
   } finally {
     await api.dispose()

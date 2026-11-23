@@ -117,7 +117,7 @@ export function designSpec(target: PlatformTarget, stack: PlatformStack, input: 
   const lines: string[] = []
   lines.push(`# 设计规格清单（${PLATFORM_LABEL[target]} · ${STACK_LABEL[stack]}）`)
   lines.push('')
-  lines.push('> 由天枢画布从当前设计系统生成。请按本规格编写页面代码。')
+  lines.push('> 由DSH画布从当前设计系统生成。请按本规格编写页面代码。')
   lines.push('')
   lines.push('## 语义色')
   lines.push('')
@@ -179,7 +179,7 @@ function swiftUiFiles(input: PlatformInput): CodeFile[] {
 
   const swift = `import SwiftUI
 
-/// 由天枢画布生成的设计 Token。请勿手改。
+/// 由 dsh-canvas 生成的设计 Token。请勿手改。
 public enum DesignTokens {
     public enum Color_ {
 ${colorLines}
@@ -224,7 +224,7 @@ public extension Color {
 function uiKitFiles(input: PlatformInput): CodeFile[] {
   const header = `#import <UIKit/UIKit.h>
 
-/// 由天枢画布生成的设计 Token。请勿手改。
+/// 由 dsh-canvas 生成的设计 Token。请勿手改。
 @interface TSDesignTokens : NSObject
 
 ${Object.keys(input.semantics).map((k) => `+ (UIColor *)${constantName(k, 'camel')};`).join('\n')}
@@ -286,7 +286,7 @@ function composeFiles(input: PlatformInput): CodeFile[] {
 
 import androidx.compose.ui.graphics.Color
 
-// 由天枢画布生成。请勿手改。
+// 由 dsh-canvas 生成。请勿手改。
 ${Object.entries(input.semantics)
   .map(([key, value]) => {
     const { hex, opacity } = colorValue(value)
@@ -302,7 +302,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// 由天枢画布生成。请勿手改。
+// 由 dsh-canvas 生成。请勿手改。
 object TsTypography {
 ${Object.entries(input.fontSizes)
   .map(([name, px]) => `    val ${name} = TextStyle(fontSize = ${px}.sp, fontWeight = FontWeight.Normal)`)
@@ -317,7 +317,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 
-// 由天枢画布生成。请勿手改。
+// 由 dsh-canvas 生成。请勿手改。
 private val TsColorScheme = lightColorScheme(
     background = ${constantName('bg.canvas', 'camel')},
     surface = ${constantName('bg.surface', 'camel')},
@@ -349,7 +349,7 @@ fun TsTheme(content: @Composable () -> Unit) {
 /** Android · XML：colors.xml + dimens.xml + themes.xml。 */
 function xmlFiles(input: PlatformInput): CodeFile[] {
   const colors = `<?xml version="1.0" encoding="utf-8"?>
-<!-- 由天枢画布生成。请勿手改。 -->
+<!-- 由 dsh-canvas 生成。请勿手改。 -->
 <resources>
 ${Object.entries(input.semantics)
   .map(([key, value]) => `    <color name="${constantName(key, 'snake')}">${colorValue(value).hex}</color>`)
@@ -357,7 +357,7 @@ ${Object.entries(input.semantics)
 </resources>
 `
   const dimens = `<?xml version="1.0" encoding="utf-8"?>
-<!-- 由天枢画布生成。请勿手改。 -->
+<!-- 由 dsh-canvas 生成。请勿手改。 -->
 <resources>
 ${input.spacing.map((v, i) => `    <dimen name="ts_space_${i}">${v}dp</dimen>`).join('\n')}
 ${Object.entries(input.radius)
@@ -367,7 +367,7 @@ ${Object.entries(input.radius)
 </resources>
 `
   const themes = `<?xml version="1.0" encoding="utf-8"?>
-<!-- 由天枢画布生成。请勿手改。 -->
+<!-- 由 dsh-canvas 生成。请勿手改。 -->
 <resources>
     <style name="Theme.Ts" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/${constantName('action.primary', 'snake')}</item>
@@ -388,7 +388,7 @@ ${Object.entries(input.radius)
 
 /** 小程序 · 微信原生：app.wxss + theme.js。 */
 function weappFiles(input: PlatformInput): CodeFile[] {
-  const wxss = `/* 由天枢画布生成。请勿手改。 */
+  const wxss = `/* 由 dsh-canvas 生成。请勿手改。 */
 page {
 ${Object.entries(input.semantics)
   .map(([key, value]) => `  --${constantName(key, 'kebab')}: ${colorValue(value).hex};`)
@@ -403,7 +403,7 @@ ${Object.entries(input.radius)
   .join('\n')}
 }
 `
-  const themeJs = `// 由天枢画布生成。请勿手改。
+  const themeJs = `// 由 dsh-canvas 生成。请勿手改。
 module.exports = {
   colors: {
 ${Object.entries(input.semantics)
@@ -422,7 +422,7 @@ ${Object.entries(input.semantics)
 
 /** 小程序 · uni-app：uni.scss + theme.js。 */
 function uniappFiles(input: PlatformInput): CodeFile[] {
-  const scss = `/* 由天枢画布生成。请勿手改。 */
+  const scss = `/* 由 dsh-canvas 生成。请勿手改。 */
 ${Object.entries(input.semantics)
   .map(([key, value]) => `$ts-${constantName(key, 'kebab')}: ${colorValue(value).hex};`)
   .join('\n')}
@@ -440,7 +440,7 @@ ${Object.entries(input.radius)
 
 /** 小程序 · Taro：app.scss + tailwind.config.js（复用 Tailwind 主题）。 */
 function taroFiles(input: PlatformInput): CodeFile[] {
-  const scss = `/* 由天枢画布生成。请勿手改。 */
+  const scss = `/* 由 dsh-canvas 生成。请勿手改。 */
 :root {
 ${Object.entries(input.semantics)
   .map(([key, value]) => `  --ts-${constantName(key, 'kebab')}: ${colorValue(value).hex};`)

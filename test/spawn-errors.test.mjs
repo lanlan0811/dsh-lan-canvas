@@ -26,11 +26,11 @@ test.after(() => diagnosticInstance.dispose())
 test.after(() => rmSync(cwd, { recursive: true, force: true }))
 
 test('PNG 导出：浏览器无法启动时返回可读错误，且不重试', async () => {
-  const added = await tools.canvas_upsert_page.execute({ input: { html: '<h1>x</h1>', title: 'x' }, cwd })
+  const added = await tools.dsh_canvas_upsert_page.execute({ input: { html: '<h1>x</h1>', title: 'x' }, cwd })
   assert.ok(!added.isError, added.content)
 
   // 导出没有 AI 工具，走画布顶栏调用的 HTTP 路由。
-  const open = await tools.canvas_open.execute({ input: { port: 0 }, cwd })
+  const open = await tools.dsh_canvas_open.execute({ input: { port: 0 }, cwd })
   const m = open.content.match(/http:\/\/127\.0\.0\.1:\d+\/w\/[0-9a-f]{32}\/\?ws=[0-9a-f]{32}#[0-9a-f]{64}/)
   assert.ok(m, `未返回合法 URL: ${open.content}`)
   const token = new URL(m[0]).searchParams.get('ws')
@@ -38,7 +38,7 @@ test('PNG 导出：浏览器无法启动时返回可读错误，且不重试', a
   const post = (kind) =>
     fetch(`${base}/api/export`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1' },
+      headers: { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1' },
       body: JSON.stringify({ ws: token, kind }),
     })
 
@@ -54,13 +54,13 @@ test('PNG 导出：浏览器无法启动时返回可读错误，且不重试', a
   assert.ok(both.files.some((f) => f.name.endsWith('.zip')), 'PNG 失败不影响 ZIP')
 })
 
-test('canvas_open：打不开系统浏览器时不影响返回', async () => {
+test('dsh_canvas_open：打不开系统浏览器时不影响返回', async () => {
   const saved = { PATH: process.env.PATH, Path: process.env.Path, ComSpec: process.env.ComSpec }
   process.env.PATH = ''
   process.env.Path = ''
   process.env.ComSpec = ''
   try {
-    const res = await tools.canvas_open.execute({ input: { port: 0, open: true }, cwd })
+    const res = await tools.dsh_canvas_open.execute({ input: { port: 0, open: true }, cwd })
     assert.ok(!res.isError, res.content)
     assert.match(res.content, /http:\/\/127\.0\.0\.1/)
     // 给异步 error 事件留出触发时间；未处理时测试进程会因未捕获异常失败。

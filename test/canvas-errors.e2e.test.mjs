@@ -16,16 +16,16 @@ test('变更拒绝可见且不自动重试：节点、连线、批注与视口',
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-shell-errors-'))
   let browser
   try {
-    const added = await tools.canvas_upsert_page.execute({ cwd, input: { id: 'page-errors', title: '原始页面', html: '<html><head></head><body><h1>原始页面</h1></body></html>', device_type: 'mobile' } })
+    const added = await tools.dsh_canvas_upsert_page.execute({ cwd, input: { id: 'page-errors', title: '原始页面', html: '<html><head></head><body><h1>原始页面</h1></body></html>', device_type: 'mobile' } })
     assert.ok(!added.isError, added.content)
-    const second = await tools.canvas_upsert_page.execute({ cwd, input: { id: 'page-target', title: '目标页面', html: '<h1>目标</h1>', device_type: 'mobile' } })
+    const second = await tools.dsh_canvas_upsert_page.execute({ cwd, input: { id: 'page-target', title: '目标页面', html: '<h1>目标</h1>', device_type: 'mobile' } })
     assert.ok(!second.isError, second.content)
-    const opened = await tools.canvas_open.execute({ cwd, input: { port: 0 } })
+    const opened = await tools.dsh_canvas_open.execute({ cwd, input: { port: 0 } })
     const url = opened.content.split(String.fromCharCode(10)).find(line => line.startsWith('http://127.0.0.1:'))?.trim()
     assert.ok(url)
     const parsed = new URL(url)
     const ws = parsed.searchParams.get('ws')
-    const comment = await fetch(`${parsed.origin}/api/comments`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1' }, body: JSON.stringify({ ws, op: 'add', pageId: 'page-errors', xpath: '/html[1]/body[1]/h1[1]', tagName: 'h1', note: '错误验收批注' }) })
+    const comment = await fetch(`${parsed.origin}/api/comments`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1' }, body: JSON.stringify({ ws, op: 'add', pageId: 'page-errors', xpath: '/html[1]/body[1]/h1[1]', tagName: 'h1', note: '错误验收批注' }) })
     assert.equal(comment.status, 200)
     browser = await (await import('puppeteer-core')).default.launch({ executablePath: browserPath, headless: true, args: ['--disable-gpu', '--disable-dev-shm-usage'] })
     const page = await browser.newPage()
@@ -37,7 +37,7 @@ test('变更拒绝可见且不自动重试：节点、连线、批注与视口',
     await page.click('.react-flow__node[data-id=page-errors] .page-node__header')
     await page.waitForSelector('.node-toolbar')
     await page.waitForSelector('.comment-item')
-    const before = readFileSync(join(cwd, '.tianshu-canvas/project.json'), 'utf8')
+    const before = readFileSync(join(cwd, '.dsh-canvas/project.json'), 'utf8')
     const requests = []
     const reads = []
     await page.setRequestInterception(true)
@@ -114,7 +114,7 @@ test('变更拒绝可见且不自动重试：节点、连线、批注与视口',
     assert.equal(requests.filter(request => request.path.endsWith('/comments') && request.op === 'remove').length, 1)
     assert.equal(requests.filter(request => request.path.endsWith('/viewport')).length, 1)
     assert.ok(reads.length >= 5, '每次拒绝后重新读取服务端项目')
-    assert.equal(readFileSync(join(cwd, '.tianshu-canvas/project.json'), 'utf8'), before)
+    assert.equal(readFileSync(join(cwd, '.dsh-canvas/project.json'), 'utf8'), before)
     assert.deepEqual(unhandled, [], '不得留下未处理的 Promise 拒绝')
   } finally {
     if (browser) await browser.close()

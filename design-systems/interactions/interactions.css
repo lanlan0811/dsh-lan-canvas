@@ -1,4 +1,4 @@
-/* 天枢画布交互库样式。
+/* DSH画布交互库样式。
    只允许使用 --ts-* 变量；全风格共享同一份，差异全部来自 token。
    复用组件目录已有的类（ts-tabs/ts-tab/ts-dialog/ts-toast/ts-switch/ts-progress/ts-table），
    交互库自有的结构/状态类统一用 ts-i- 前缀。 */

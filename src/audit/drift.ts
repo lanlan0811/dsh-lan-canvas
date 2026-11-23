@@ -34,7 +34,7 @@ function hash(text: string): string {
 }
 
 export function snapshotDir(cwd: string): string {
-  return join(cwd, '.tianshu-canvas', 'audit')
+  return join(cwd, '.dsh-canvas', 'audit')
 }
 
 export function buildSnapshot(input: {

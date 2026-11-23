@@ -395,7 +395,7 @@ function Canvas() {
 
   useEffect(() => {
     if (!ws) {
-      setError('缺少 ws 参数：请通过 canvas_open 返回的 URL 打开本页。')
+      setError('缺少 ws 参数：请通过 dsh_canvas_open 返回的 URL 打开本页。')
       setInitialViewport(null)
       setReady(true)
       return

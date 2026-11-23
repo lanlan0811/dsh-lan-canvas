@@ -37,8 +37,8 @@ const sharedBrief = Object.freeze({
 const directions = ['editorial-narrative', 'product-evidence']
 const ids = ['workflow-editorial', 'workflow-product']
 const prototypeIds = ['editorial-casebook', 'product-story']
-const readProject = cwd => JSON.parse(readFileSync(join(cwd, '.tianshu-canvas/project.json'), 'utf8'))
-const readHtml = (cwd, id) => readFileSync(join(cwd, '.tianshu-canvas/pages', `${id}.html`), 'utf8')
+const readProject = cwd => JSON.parse(readFileSync(join(cwd, '.dsh-canvas/project.json'), 'utf8'))
+const readHtml = (cwd, id) => readFileSync(join(cwd, '.dsh-canvas/pages', `${id}.html`), 'utf8')
 
 async function call(cwd, name, input = {}) {
   const result = await tools[name].execute({ cwd, input })
@@ -82,19 +82,19 @@ async function pageFrame(page, id, preview = false) {
 }
 
 test('审美工作流保留九工具，公开入口明确双首屏与显式确认', async () => {
-  assert.deepEqual(Object.keys(tools).sort(), ['canvas_open', 'canvas_upsert_page', 'canvas_get_state', 'canvas_arrange', 'canvas_style', 'canvas_check_style', 'canvas_design_system', 'canvas_audit', 'canvas_comments'].sort())
-  const actions = tools.canvas_style.definition.input_schema.properties.action.enum
+  assert.deepEqual(Object.keys(tools).sort(), ['dsh_canvas_open', 'dsh_canvas_upsert_page', 'dsh_canvas_get_state', 'dsh_canvas_arrange', 'dsh_canvas_style', 'dsh_canvas_check_style', 'dsh_canvas_design_system', 'dsh_canvas_audit', 'dsh_canvas_comments'].sort())
+  const actions = tools.dsh_canvas_style.definition.input_schema.properties.action.enum
   for (const action of ['direction', 'prototype', 'brief']) assert.ok(actions.includes(action))
-  const schema = tools.canvas_style.definition.input_schema.properties.brief.properties.confirmation
+  const schema = tools.dsh_canvas_style.definition.input_schema.properties.brief.properties.confirmation
   assert.deepEqual(schema.properties.confirmed.enum, [true])
   assert.match(schema.description, /明确选择/)
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-workflow-contract-'))
   try {
-    const opened = await call(cwd, 'canvas_open', { port: 0 })
+    const opened = await call(cwd, 'dsh_canvas_open', { port: 0 })
     assert.match(opened, /同一内容.*两个.*首屏/)
     assert.match(opened, /明确选择.*brief.*原位深化/)
     assert.doesNotMatch(opened, /风格名作为选项|先确认设计风格/)
-    const state = await call(cwd, 'canvas_get_state')
+    const state = await call(cwd, 'dsh_canvas_get_state')
     assert.match(state, /自由发挥/)
     assert.match(state, /两个不同首屏/)
   } finally { rmSync(cwd, { recursive: true, force: true }) }
@@ -106,27 +106,27 @@ for (const locked of [false, true]) {
     const puppeteer = (await import('puppeteer-core')).default
     let browser
     try {
-      const opened = await call(cwd, 'canvas_open', { port: 0 })
+      const opened = await call(cwd, 'dsh_canvas_open', { port: 0 })
       const url = opened.match(/http:\/\/127\.0\.0\.1:\d+\/w\/[0-9a-f]{32}\/\?ws=[0-9a-f]{32}#[0-9a-f]{64}/)?.[0]
       assert.ok(url, '生产工具应返回带工作区与授权凭证的画布 URL')
       if (locked) {
-        await call(cwd, 'canvas_style', { action: 'set', style_id: 'tianshu-inkstone' })
-        await call(cwd, 'canvas_upsert_page', { id: 'brand-existing', title: '已有品牌页', html: '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"></head><body><h1 id="legacy-mark">已有品牌页面</h1><p>本页不参与此次选稿。</p></body></html>', x: 2080, y: 0, width: 600, height: 820 })
+        await call(cwd, 'dsh_canvas_style', { action: 'set', style_id: 'tianshu-inkstone' })
+        await call(cwd, 'dsh_canvas_upsert_page', { id: 'brand-existing', title: '已有品牌页', html: '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"></head><body><h1 id="legacy-mark">已有品牌页面</h1><p>本页不参与此次选稿。</p></body></html>', x: 2080, y: 0, width: 600, height: 820 })
       }
-      // canvas_open intentionally does not create project.json for an empty canvas.
+      // dsh_canvas_open intentionally does not create project.json for an empty canvas.
       const oldProject = locked ? readProject(cwd) : { nodes: [] }
       const oldDesign = structuredClone(oldProject.design)
       const oldHtml = locked ? readHtml(cwd, 'brand-existing') : null
       const docs = []
       for (let i = 0; i < directions.length; i++) {
-        const doc = JSON.parse(await call(cwd, 'canvas_style', { action: 'direction', direction_id: directions[i] }))
+        const doc = JSON.parse(await call(cwd, 'dsh_canvas_style', { action: 'direction', direction_id: directions[i] }))
         assert.equal(doc.id, directions[i])
         assert.ok(doc.composition.length && doc.typography.length && doc.mobile.length)
         assert.equal(doc.examples.length, 2)
         assert.ok(doc.examples.every(example => /<html[\s>]/i.test(example.html)))
         docs.push(doc)
-        await call(cwd, 'canvas_upsert_page', { id: ids[i], title: i === 0 ? '方案 A · 编辑叙事' : '方案 B · 产品证据', html: specimen(directions[i]), x: i * 1040, y: 0, width: 900, height: 820, device_type: 'desktop' })
-        await call(cwd, 'canvas_style', { action: 'brief', page_id: ids[i], brief: { ...sharedBrief, directionId: directions[i], prototypeId: prototypeIds[i] } })
+        await call(cwd, 'dsh_canvas_upsert_page', { id: ids[i], title: i === 0 ? '方案 A · 编辑叙事' : '方案 B · 产品证据', html: specimen(directions[i]), x: i * 1040, y: 0, width: 900, height: 820, device_type: 'desktop' })
+        await call(cwd, 'dsh_canvas_style', { action: 'brief', page_id: ids[i], brief: { ...sharedBrief, directionId: directions[i], prototypeId: prototypeIds[i] } })
       }
       assert.notDeepEqual(docs[0].composition, docs[1].composition, '方向必须提供不同构图指导')
       const drafts = readProject(cwd)
@@ -141,7 +141,7 @@ for (const locked of [false, true]) {
         assert.equal(node.type, 'page', '首屏候选必须是普通画布节点')
       }
       if (locked) assert.equal(readHtml(cwd, 'brand-existing'), oldHtml)
-      const draftState = await call(cwd, 'canvas_get_state')
+      const draftState = await call(cwd, 'dsh_canvas_get_state')
       assert.match(draftState, /选中节点不等于确认/)
       for (const direction of directions) assert.ok(draftState.includes(`未确认草稿 ${direction}`))
       for (const prototypeId of prototypeIds) assert.ok(draftState.includes(prototypeId))
@@ -193,16 +193,16 @@ for (const locked of [false, true]) {
       for (const id of ids) {
         assert.equal(await page.$eval(`.react-flow__node[data-id="${id}"] .page-node__iframe`, frame => frame.getAttribute('sandbox')), 'allow-scripts')
         await page.click(`.react-flow__node[data-id="${id}"] .page-node__header`)
-        await eventually(() => { try { return JSON.parse(readFileSync(join(cwd, '.tianshu-canvas/selection.json'), 'utf8')).pageId === id } catch { return false } }, '点击候选应保存实际选中项')
+        await eventually(() => { try { return JSON.parse(readFileSync(join(cwd, '.dsh-canvas/selection.json'), 'utf8')).pageId === id } catch { return false } }, '点击候选应保存实际选中项')
         assert.equal(readProject(cwd).pageBriefs[id].confirmedDirection, undefined, '用户浏览或选中候选不能自动确认方向')
       }
       const reason = '测试用户明确选择方案 A：通栏论点与章节阅读更适合当前服务说明。'
-      await call(cwd, 'canvas_style', { action: 'brief', page_id: ids[0], brief: { confirmation: { confirmed: true, directionId: directions[0], reason } } })
+      await call(cwd, 'dsh_canvas_style', { action: 'brief', page_id: ids[0], brief: { confirmation: { confirmed: true, directionId: directions[0], reason } } })
       const confirmed = readProject(cwd).pageBriefs[ids[0]].confirmedDirection
       assert.equal(confirmed.directionId, directions[0])
       assert.equal(confirmed.reason, reason)
       assert.ok(Number.isSafeInteger(confirmed.confirmedAt) && confirmed.confirmedAt > 0)
-      await call(cwd, 'canvas_upsert_page', { id: ids[0], html: specimen(directions[0], true), height: 1420 })
+      await call(cwd, 'dsh_canvas_upsert_page', { id: ids[0], html: specimen(directions[0], true), height: 1420 })
       const completed = readProject(cwd)
       assert.equal(completed.nodes.length, drafts.nodes.length, '深化更新原节点，不能另建页面或替换另一方案')
       const originalNode = drafts.nodes.find(node => node.id === ids[0])
@@ -226,7 +226,7 @@ for (const locked of [false, true]) {
       }, '原节点 iframe 应通过生产 SSE 刷新到整页')
       const unchangedFrame = await pageFrame(page, ids[1])
       assert.equal(await unchangedFrame.$('.workflow-details'), null)
-      const state = await call(cwd, 'canvas_get_state')
+      const state = await call(cwd, 'dsh_canvas_get_state')
       assert.ok(state.includes(`用户已确认 ${directions[0]}`) && state.includes(reason) && state.includes(String(confirmed.confirmedAt)))
       assert.ok(state.includes(`未确认草稿 ${directions[1]}`))
 

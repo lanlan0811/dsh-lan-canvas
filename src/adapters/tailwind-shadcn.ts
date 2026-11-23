@@ -300,7 +300,7 @@ export const shadcnAdapter: Adapter = {
       .map((name) => `import { ${name} } from '@/components/ui/${shadcnModule(name)}'`)
       .join('\n')
 
-    const page = `// 由 Tianshu-Canvas 生成（风格：${ctx.styleName}）。\n// 建议先安装 shadcn 组件：npx shadcn@latest add button input table card badge tabs dialog dropdown-menu\n'use client'\n\nimport React from 'react'\n${imports}\n\nexport default function Page() {\n  return (\n${indent(body, 4)}\n  )\n}\n`
+    const page = `// 由 dsh-canvas 生成（风格：${ctx.styleName}）。\n// 建议先安装 shadcn 组件：npx shadcn@latest add button input table card badge tabs dialog dropdown-menu\n'use client'\n\nimport React from 'react'\n${imports}\n\nexport default function Page() {\n  return (\n${indent(body, 4)}\n  )\n}\n`
 
     const theme = renderTheme(ctx)
     const css = renderThemeCss(ctx)
@@ -534,7 +534,7 @@ function renderTheme(ctx: AdapterContext): string {
     const short = path.replace(/^color\./, '')
     lines.push(`  '${short.replace(/\./g, '-')}': '${semanticValue(ctx, short)}',`)
   }
-  return `// 由 Tianshu-Canvas 生成：设计 token → shadcn CSS 变量。\n// 与 app/theme.css 保持一致；改这里请同时改 CSS。\nexport const themeVars = {\n${lines.join('\n')}\n} as const\n\nexport type ThemeVar = keyof typeof themeVars\n`
+  return `// 由 dsh-canvas 生成：设计 token → shadcn CSS 变量。\n// 与 app/theme.css 保持一致；改这里请同时改 CSS。\nexport const themeVars = {\n${lines.join('\n')}\n} as const\n\nexport type ThemeVar = keyof typeof themeVars\n`
 }
 
 function renderThemeCss(ctx: AdapterContext): string {
@@ -559,13 +559,13 @@ function renderThemeCss(ctx: AdapterContext): string {
     dark.push(`  --border: ${d('border.default')};`, `  --ring: ${d('border.focus')};`)
   }
   const radius = ctx.radius.md ?? 8
-  return `/* 由 Tianshu-Canvas 生成（风格：${ctx.styleName}）。 */\n@import 'tailwindcss';\n\n:root {\n${root.join('\n')}\n  --radius: ${radius}px;\n}\n${
+  return `/* 由 dsh-canvas 生成（风格：${ctx.styleName}）。 */\n@import 'tailwindcss';\n\n:root {\n${root.join('\n')}\n  --radius: ${radius}px;\n}\n${
     dark.length ? `\n.dark {\n${dark.join('\n')}\n}\n` : ''
   }\n@theme inline {\n  --color-background: var(--background);\n  --color-foreground: var(--foreground);\n  --color-card: var(--card);\n  --color-primary: var(--primary);\n  --color-primary-foreground: var(--primary-foreground);\n  --color-secondary: var(--secondary);\n  --color-muted: var(--muted);\n  --color-muted-foreground: var(--muted-foreground);\n  --color-accent: var(--accent);\n  --color-destructive: var(--destructive);\n  --color-border: var(--border);\n  --color-input: var(--input);\n  --color-ring: var(--ring);\n  --radius-md: calc(var(--radius));\n}\n`
 }
 
 function renderReadme(ctx: AdapterContext): string {
-  return `# 落地说明（由 Tianshu-Canvas 生成）
+  return `# 落地说明（由 dsh-canvas 生成）
 
 1. 把 \`app/theme.css\` 合并进项目的 \`app/globals.css\`（或直接 \`@import './theme.css'\`）。
 2. 安装本页用到的 shadcn 组件：\`npx shadcn@latest add button input table card badge tabs dialog\`。

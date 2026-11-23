@@ -28,7 +28,7 @@ try {
   const nav = await import(pathToFileURL(entry).href)
   for (const count of [50, 200, 1000]) {
     const cwd = join(temp, 'pages-' + count)
-    const pages = join(cwd, '.tianshu-canvas', 'pages')
+    const pages = join(cwd, '.dsh-canvas', 'pages')
     fs.mkdirSync(pages, { recursive: true })
     const nodes = []
     const now = 1794412800000
@@ -36,10 +36,10 @@ try {
     for (let i = 0; i < count; i++) {
       const id = 'page-fixture-' + i
       const html = i === 0 ? '<a href="target-0.html">target</a>' + fixtureHtml : fixtureHtml
-      nodes.push({ id, type: 'page', title: '静态 ' + i, x: (i % 20) * 380, y: Math.floor(i / 20) * 720, width: 320, height: 600, deviceType: 'mobile', htmlPath: '.tianshu-canvas/pages/' + id + '.html', htmlRev: now, createdAt: now, updatedAt: now })
+      nodes.push({ id, type: 'page', title: '静态 ' + i, x: (i % 20) * 380, y: Math.floor(i / 20) * 720, width: 320, height: 600, deviceType: 'mobile', htmlPath: '.dsh-canvas/pages/' + id + '.html', htmlRev: now, createdAt: now, updatedAt: now })
       fs.writeFileSync(join(pages, id + '.html'), html)
     }
-    fs.writeFileSync(join(cwd, '.tianshu-canvas', 'project.json'), JSON.stringify({ version: 1, viewport: { x: 0, y: 0, zoom: 1 }, nodes, edges: [] }, null, 2) + String.fromCharCode(10))
+    fs.writeFileSync(join(cwd, '.dsh-canvas', 'project.json'), JSON.stringify({ version: 1, viewport: { x: 0, y: 0, zoom: 1 }, nodes, edges: [] }, null, 2) + String.fromCharCode(10))
     const run = (operation) => {
       projectCommits = 0
       const started = performance.now()

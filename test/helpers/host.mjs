@@ -1,5 +1,5 @@
 /**
- * 复刻天枢 loader 语义的最小宿主，用于端到端验证插件。
+ * 复刻DSH loader 语义的最小宿主，用于端到端验证插件。
  * 复刻点（取自 .claude/reversed-src/tpi-loader/*.reconstructed.js）：
  *   - installTpiGlobalSdk / defineTianshuPlugin 的品牌与冻结
  *   - wrapTpiTool 的 call.input→args、pathParams 改写、返回值只取 content/isError

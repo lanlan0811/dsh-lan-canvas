@@ -12,7 +12,7 @@ const root = resolve(import.meta.dirname, '..')
 const { tools } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
 
 const cwd = mkdtempSync(join(tmpdir(), 'tsc-res-'))
-const upsert = (html) => tools.canvas_upsert_page.execute({ input: { html }, cwd })
+const upsert = (html) => tools.dsh_canvas_upsert_page.execute({ input: { html }, cwd })
 
 try {
   const blocked = await upsert(`<!doctype html><html><head>
@@ -37,7 +37,7 @@ try {
   assert.doesNotMatch(notInlined.content, /资源内联/, '未显式开启时不应尝试内联')
 
   // 显式开启但没有 origin：相对路径保留原引用并说明原因（不触网）。
-  const opened = await tools.canvas_upsert_page.execute({ input: { html: '<img src="./photo.png">', inline_assets: true }, cwd })
+  const opened = await tools.dsh_canvas_upsert_page.execute({ input: { html: '<img src="./photo.png">', inline_assets: true }, cwd })
   assert.ok(!opened.isError, opened.content)
   assert.match(opened.content, /资源内联/)
   assert.match(opened.content, /未提供 origin/)

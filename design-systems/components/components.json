@@ -212,7 +212,7 @@
       "classes": ["ts-nav", "ts-nav__brand", "ts-nav__links", "ts-nav__link", "ts-nav__link--active"],
       "slots": ["brand", "links"],
       "tokens": ["color.bg.surface", "color.border.default", "font.sizes.md"],
-      "example": "<nav class=\"ts-nav\"><span class=\"ts-nav__brand\">天枢</span><div class=\"ts-nav__links\"><a class=\"ts-nav__link ts-nav__link--active\">首页</a></div></nav>"
+      "example": "<nav class=\"ts-nav\"><span class=\"ts-nav__brand\">DSH</span><div class=\"ts-nav__links\"><a class=\"ts-nav__link ts-nav__link--active\">首页</a></div></nav>"
     },
     {
       "id": "tabs",

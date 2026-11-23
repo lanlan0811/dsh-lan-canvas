@@ -2,8 +2,8 @@
  * 画布项目模型。
  *
  * 存储位置（工作区内，用户可见、可版本化）：
- *   <cwd>/.tianshu-canvas/project.json      画布模型
- *   <cwd>/.tianshu-canvas/pages/<id>.html   每个页面的原型 HTML
+ *   <cwd>/.dsh-canvas/project.json      画布模型
+ *   <cwd>/.dsh-canvas/pages/<id>.html   每个页面的原型 HTML
  *
  * 写入用「临时文件 + rename」保证原子性（同目录，NTFS/POSIX 均原子）。
  * 变更后 emit 事件，供本地服务广播 SSE。
@@ -19,7 +19,7 @@ import { warnUser } from './host.js'
 import type { DeviceType } from './device.js'
 import { normalizeStoredPageBrief, type PageBrief } from './brief.js'
 
-export const PROJECT_DIR_NAME = '.tianshu-canvas'
+export const PROJECT_DIR_NAME = '.dsh-canvas'
 
 export interface PageNode {
   id: string
@@ -30,7 +30,7 @@ export interface PageNode {
   width: number
   height: number
   deviceType: DeviceType
-  /** 相对 cwd 的路径，如 `.tianshu-canvas/pages/page-3f2a91c4.html` */
+  /** 相对 cwd 的路径，如 `.dsh-canvas/pages/page-3f2a91c4.html` */
   htmlPath: string
   /** 原型内容版本：AI 写入新 HTML 时更新，画布据此刷新 iframe。 */
   htmlRev?: number

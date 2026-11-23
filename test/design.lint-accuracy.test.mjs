@@ -11,7 +11,7 @@ import { loadPlugin } from './helpers/host.mjs'
 const root = resolve(import.meta.dirname, '..')
 const { tools } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
 
-const check = (input) => tools.canvas_check_style.execute({ input, cwd: process.cwd() })
+const check = (input) => tools.dsh_canvas_check_style.execute({ input, cwd: process.cwd() })
 const lint = async (css) => (await check({ html: `<style>${css}</style>`, style_id: 'claude' })).content
 
 test('多值写法：逐个检查像素值', async () => {
@@ -85,6 +85,6 @@ test('未知风格报错，不能显示通过', async () => {
   const lintRes = await check({ html: '<style>.a{color:#123456}</style>', style_id: 'nope' })
   assert.equal(lintRes.isError, true)
   assert.match(lintRes.content, /未知的设计风格：nope/)
-  const getRes = await tools.canvas_style.execute({ input: { action: 'get', style_id: 'nope' }, cwd: process.cwd() })
+  const getRes = await tools.dsh_canvas_style.execute({ input: { action: 'get', style_id: 'nope' }, cwd: process.cwd() })
   assert.equal(getRes.isError, true)
 })

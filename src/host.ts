@@ -28,7 +28,7 @@ export function isWorkerSession(): boolean {
 
 /** 非致命问题：有宿主日志通道时走 host.log.warn，否则打到 stderr。 */
 export function warnUser(message: string): void {
-  const line = `[tianshu-canvas] ${message}`
+  const line = `[dsh-canvas] ${message}`
   if (services) services.log.warn(line)
   else console.error(line)
 }

@@ -1,6 +1,6 @@
 /**
  * 顶栏设计风格展示（只读）：显示当前项目级风格与色卡，画布上不可切换。
- * 风格由 AI 通过 canvas_style 设定/切换；锁定后所有页面视觉统一，避免误操作改掉设计系统。
+ * 风格由 AI 通过 dsh_canvas_style 设定/切换；锁定后所有页面视觉统一，避免误操作改掉设计系统。
  */
 import type { ApiDesignCatalog, ApiDesignStyleSummary } from './api'
 import { LockIcon, PaletteIcon, SparkIcon } from './icons'

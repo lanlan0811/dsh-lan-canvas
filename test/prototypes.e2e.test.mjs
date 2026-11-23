@@ -23,7 +23,7 @@ test('原创原型：真实任务搜索分页、输入保留、表单校验、�
   page.on('request',req=>{if(/^https?:/.test(req.url())){external++;req.abort()}else req.continue()})
   let frame
   async function open(id,width=1440){
-    const result=await tools.canvas_style.execute({cwd,input:{action:'prototype',prototype_id:id}})
+    const result=await tools.dsh_canvas_style.execute({cwd,input:{action:'prototype',prototype_id:id}})
     assert.ok(!result.isError,result.content)
     const doc=JSON.parse(result.content)
     await page.setViewport({width,height:1000})

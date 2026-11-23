@@ -1,7 +1,7 @@
 /**
  * 设计契约审计：把「页面是否符合当前设计系统」变成可重复执行的确定性断言。
  *
- * 与 canvas_check_style 的区别：check_style 只读、给人看；这里额外产出
+ * 与 dsh_canvas_check_style 的区别：check_style 只读、给人看；这里额外产出
  *   - 结构化结果（可用于基线与 CI 退出码）
  *   - 可落盘的自包含测试文件（团队可粘进自己的仓库跑）
  *   - 变量使用集合（与 manifest 求差，供漂移检测）
@@ -91,7 +91,7 @@ export function computeContract(html: string, styleId: string | null, cwd: strin
 export function renderTestFile(input: { styleId: string | null; usage: ContractUsage }): string {
   const vars = JSON.stringify(input.usage.vars, null, 2)
   const classes = JSON.stringify(input.usage.classes, null, 2)
-  return `// 由 Tianshu-Canvas 生成的设计契约测试。直接改下面的常量即可维护。
+  return `// 由 dsh-canvas 生成的设计契约测试。直接改下面的常量即可维护。
 // 运行：node --test design.audit.test.mjs
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -145,7 +145,7 @@ export function formatContractReport(result: ContractResult, label: string): str
   if (result.usage.unknownVars.length) lines.push(`契约外变量：${result.usage.unknownVars.slice(0, 10).join('、')}`)
   if (result.usage.unknownClasses.length) lines.push(`契约外类：${result.usage.unknownClasses.slice(0, 10).join('、')}`)
   if (result.usage.interactionClasses.length) lines.push(`交互类：${result.usage.interactionClasses.slice(0, 10).join('、')}`)
-  if (result.usage.missingInteractionRuntime) lines.push('警告：用到交互但缺少运行时，交互不会生效（用 canvas_upsert_page 重新写入以自动注入）')
+  if (result.usage.missingInteractionRuntime) lines.push('警告：用到交互但缺少运行时，交互不会生效（用 dsh_canvas_upsert_page 重新写入以自动注入）')
   if (result.usage.unusedVars.length) lines.push(`未使用的变量 ${result.usage.unusedVars.length} 个（不算错误，漂移检测会跟踪）`)
   if (result.score === 1) lines.push('结论：完全符合当前设计系统。')
   return lines.join('\n')

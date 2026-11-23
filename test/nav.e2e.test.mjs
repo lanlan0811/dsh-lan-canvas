@@ -26,13 +26,13 @@ test('跳转 e2e：issue 7 嵌套链接、修饰键与原生控件', { skip: !br
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-nave2e-'))
   let browser
   try {
-    const opened = await tools.canvas_open.execute({ input: { port: 0 }, cwd })
+    const opened = await tools.dsh_canvas_open.execute({ input: { port: 0 }, cwd })
     assert.ok(!opened.isError, opened.content)
     const url = opened.content.match(/http:\/\/127\.0\.0\.1:\d+\/w\/[0-9a-f]{32}\/\?ws=[0-9a-f]{32}#[0-9a-f]{64}/)[0]
     const ws = new URL(url).searchParams.get('ws')
     const idA = 'nav-source', idB = 'nav-target', idC = 'nav-other'
     const add = async (input) => {
-      const result = await tools.canvas_upsert_page.execute({ input, cwd })
+      const result = await tools.dsh_canvas_upsert_page.execute({ input, cwd })
       assert.ok(!result.isError, result.content)
     }
     await add({ id: idB, title: '目标页', x: 800, y: 0, width: 320, height: 240, html: '<html><head></head><body><h1>目标页</h1></body></html>' })
@@ -53,20 +53,20 @@ test('跳转 e2e：issue 7 嵌套链接、修饰键与原生控件', { skip: !br
       '<a href="#anchor-target"><span id="anchor">页内锚点</span></a>' +
       '</div></div><div id="anchor-target">锚点目标</div></body></html>'
     await add({ id: idA, title: '首页', x: 0, y: 0, width: 640, height: 700, html: fixture })
-    const htmlPath = join(cwd, '.tianshu-canvas', 'pages', idA + '.html')
+    const htmlPath = join(cwd, '.dsh-canvas', 'pages', idA + '.html')
     const savedHtml = readFileSync(htmlPath, 'utf8')
     browser = await puppeteer.launch({ executablePath: browserPath, headless: true, args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'] })
     let page
     const failures = [], pageErrors = [], consoleErrors = [], popups = []
     const readSelection = () => {
-      try { return JSON.parse(readFileSync(join(cwd, '.tianshu-canvas', 'selection.json'), 'utf8')) } catch { return null }
+      try { return JSON.parse(readFileSync(join(cwd, '.dsh-canvas', 'selection.json'), 'utf8')) } catch { return null }
     }
     const frameSelector = 'iframe[src*="' + idA + '"]'
     const fresh = async () => {
       // 关闭旧页会取消其尚未完成的 fitView/debounce，场景间不共享 React 运行时。
       if (page) await page.close()
       const reset = await fetch(new URL('api/viewport', url), {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1' },
         body: JSON.stringify({ ws, x: 380, y: 90, zoom: 0.8 }),
       })
       assert.equal(reset.status, 200, '场景准备应重置为可见视口')

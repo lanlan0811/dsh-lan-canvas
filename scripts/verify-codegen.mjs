@@ -84,7 +84,7 @@ function writeWorkspace(dir, files, extraStubs = '') {
   }
 }
 
-/** 从 canvas_style 的 Markdown 返回里拆出文件名 → 内容。 */
+/** 从 dsh_canvas_style 的 Markdown 返回里拆出文件名 → 内容。 */
 function splitFiles(content) {
   const files = {}
   const re = /### ([^\n]+)\n\n```[^\n]*\n([\s\S]*?)\n```/g
@@ -93,7 +93,7 @@ function splitFiles(content) {
 }
 
 const { api } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
-const styleTool = api.tools.find((t) => t.name === 'canvas_style')
+const styleTool = api.tools.find((t) => t.name === 'dsh_canvas_style')
 const cwd = mkdtempSync(join(tmpdir(), 'tsc-verify-codegen-'))
 await styleTool.execute({ args: { action: 'set', style_id: 'apple' }, cwd, sessionId: 'verify-codegen' })
 

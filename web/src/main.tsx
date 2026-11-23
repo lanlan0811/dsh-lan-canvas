@@ -16,7 +16,7 @@ async function start(): Promise<void> {
   const secret = location.hash.slice(1)
   if (secret) {
     const res = await fetch(`${location.pathname}api/auth`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1' },
       body: JSON.stringify({ ws, secret }),
     })
     if (!res.ok) throw new Error('画布授权已失效，请重新打开画布。')

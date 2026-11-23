@@ -18,7 +18,7 @@ after(() => rmSync(apiDir, { recursive: true, force: true }))
 
 function fixture() {
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-transaction-integrity-'))
-  const dir = join(cwd, '.tianshu-canvas')
+  const dir = join(cwd, '.dsh-canvas')
   mkdirSync(join(dir, 'pages'), { recursive: true })
   const project = join(dir, 'project.json')
   writeFileSync(project, JSON.stringify({ version: 1, viewport: { x: 0, y: 0, zoom: 1 }, nodes: [], edges: [] }) + '\n')

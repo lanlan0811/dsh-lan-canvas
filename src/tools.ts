@@ -1,5 +1,5 @@
 /**
- * 工具实现。与宿主解耦：只依赖 node 内置模块，可脱离天枢直接单测。
+ * 工具实现。与宿主解耦：只依赖 node 内置模块，可脱离DSH直接单测。
  *
  * execute 收到宿主传入的 { args, cwd, sessionId }（cwd = 会话工作区根）。
  * 返回值约定：{ content: string, isError?: boolean } —— 宿主只透传这两个字段，
@@ -168,7 +168,7 @@ function projectHint(cwd: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// canvas_open
+// dsh_canvas_open
 // ---------------------------------------------------------------------------
 
 async function canvasOpen(call: ToolCall): Promise<ToolResult> {
@@ -181,7 +181,7 @@ async function canvasOpen(call: ToolCall): Promise<ToolResult> {
       `画布服务已就绪。请立刻把下面这一行原样发给用户（单独一行，便于点击）：\n` +
       `${url}\n` +
       `画布链接含访问凭证，请只提供给本机的授权使用者；不要公开分享。服务关闭后旧链接失效。\n` +
-      `在用户拿到链接后，用 canvas_get_state 看品牌、锁定风格和已确认简报；提炼受众、主张、证据与主行动。\n` +
+      `在用户拿到链接后，用 dsh_canvas_get_state 看品牌、锁定风格和已确认简报；提炼受众、主张、证据与主行动。\n` +
       `新营销页面默认同一内容生成两个结构与排版不同的首屏供选，用户明确选择后保存 brief 并原位深化；应用按任务选 prototype。已有品牌、指定布局与风格优先。\n` +
       `工作区：${call.cwd}\n` +
       `项目文件：${projectFile(call.cwd)}\n` +
@@ -220,7 +220,7 @@ function openBrowser(url: string): void {
 }
 
 // ---------------------------------------------------------------------------
-// canvas_upsert_page（新增 / 更新 HTML / 重命名 / 移动 / 改尺寸）
+// dsh_canvas_upsert_page（新增 / 更新 HTML / 重命名 / 移动 / 改尺寸）
 // ---------------------------------------------------------------------------
 
 async function canvasUpsertPage(call: ToolCall): Promise<ToolResult> {
@@ -327,10 +327,10 @@ async function canvasUpsertPage(call: ToolCall): Promise<ToolResult> {
   const styleLine = injection
     ? injection.injected
       ? `\n已应用设计风格「${designStyleSummary(call.cwd, injection.styleId ?? '')?.name ?? injection.styleId}」（${injection.styleId}）：注入 token/组件样式${injection.usedIcons.length ? `，内联 ${injection.usedIcons.length} 个图标` : ''}。`
-      : '\n当前为自由发挥（未锁定风格）；如需统一视觉，先 canvas_style（action=set）。'
+      : '\n当前为自由发挥（未锁定风格）；如需统一视觉，先 dsh_canvas_style（action=set）。'
     : ''
   const missingLine = injection?.missingIcons.length
-    ? `\n注意：这些图标名不在目录中，未内联：${injection.missingIcons.slice(0, 8).join('、')}${injection.missingIcons.length > 8 ? ` 等 ${injection.missingIcons.length} 个` : ''}。可用 canvas_style（action=get）查看图标清单。`
+    ? `\n注意：这些图标名不在目录中，未内联：${injection.missingIcons.slice(0, 8).join('、')}${injection.missingIcons.length > 8 ? ` 等 ${injection.missingIcons.length} 个` : ''}。可用 dsh_canvas_style（action=get）查看图标清单。`
     : ''
   return {
     content:
@@ -363,7 +363,7 @@ function pageRefsWith(project: Project, self: PageRef): PageRef[] {
 }
 
 // ---------------------------------------------------------------------------
-// canvas_get_state（页面列表 + 连线 + 选中项 + URL）
+// dsh_canvas_get_state（页面列表 + 连线 + 选中项 + URL）
 // ---------------------------------------------------------------------------
 
 function formatSelection(selection: Selection, project: Project): string[] {
@@ -399,13 +399,13 @@ async function canvasGetState(call: ToolCall): Promise<ToolResult> {
 
   const styleId = project.design?.styleId ?? null
   if (styleId === null) {
-    sections.push('设计风格：自由发挥（未锁定风格）。优先遵守品牌与内容简报；营销页面默认先出两个不同首屏供用户选择，再原位深化；应用按任务选原型。可用 canvas_style direction / prototype 按需读取。')
+    sections.push('设计风格：自由发挥（未锁定风格）。优先遵守品牌与内容简报；营销页面默认先出两个不同首屏供用户选择，再原位深化；应用按任务选原型。可用 dsh_canvas_style direction / prototype 按需读取。')
   } else {
     const summary = designStyleSummary(call.cwd, styleId)
     sections.push(
       summary
         ? `设计风格：${summary.name}（${styleId}，已锁定）。页面必须使用该风格的 --ts-* 变量与 ts-* 组件类。`
-        : `设计风格：未知（${styleId}）；请重新用 canvas_style（action=set）设置。`,
+        : `设计风格：未知（${styleId}）；请重新用 dsh_canvas_style（action=set）设置。`,
     )
     try {
       const memory = memorySummary(call.cwd, styleId)
@@ -416,7 +416,7 @@ async function canvasGetState(call: ToolCall): Promise<ToolResult> {
   }
 
   if (project.nodes.length === 0) {
-    sections.push('画布上暂无页面节点。\n用 canvas_upsert_page 添加一个 HTML 原型。')
+    sections.push('画布上暂无页面节点。\n用 dsh_canvas_upsert_page 添加一个 HTML 原型。')
   } else {
     const lines = project.nodes.map((n, i) => {
       return (
@@ -439,7 +439,7 @@ async function canvasGetState(call: ToolCall): Promise<ToolResult> {
     const lines = project.nodes.filter(n => project.pageBriefs?.[n.id]).map(n => {
       const brief = project.pageBriefs![n.id]!
       const decision = brief.confirmedDirection
-      return `${n.title}（${n.id}）：${decision ? '用户已确认 ' + decision.directionId + '；理由：' + decision.reason + '；确认时间：' + decision.confirmedAt : '未确认草稿' + (brief.directionId ? ' ' + brief.directionId : '')}${brief.prototypeId ? '；原型：' + brief.prototypeId : ''}；完整简报用 canvas_style action=brief,page_id=${n.id} 读取。`
+      return `${n.title}（${n.id}）：${decision ? '用户已确认 ' + decision.directionId + '；理由：' + decision.reason + '；确认时间：' + decision.confirmedAt : '未确认草稿' + (brief.directionId ? ' ' + brief.directionId : '')}${brief.prototypeId ? '；原型：' + brief.prototypeId : ''}；完整简报用 dsh_canvas_style action=brief,page_id=${n.id} 读取。`
     })
     sections.push('页面设计简报（选中节点不等于确认）：\n' + lines.join('\n'))
   }
@@ -455,15 +455,15 @@ async function canvasGetState(call: ToolCall): Promise<ToolResult> {
 
   const pending = (project.comments ?? []).filter((c) => !c.resolved).length
   if (pending > 0) {
-    sections.push(`待处理批注：${pending} 条。用 canvas_comments（action=list）查看全部批注并逐条修改。`)
+    sections.push(`待处理批注：${pending} 条。用 dsh_canvas_comments（action=list）查看全部批注并逐条修改。`)
   }
 
-  sections.push(url ? `画布 URL：${url}` : '提示：先调用 canvas_open 获取画布 URL。')
+  sections.push(url ? `画布 URL：${url}` : '提示：先调用 dsh_canvas_open 获取画布 URL。')
   return { content: sections.join('\n\n') }
 }
 
 // ---------------------------------------------------------------------------
-// canvas_arrange（remove / duplicate / link / unlink）
+// dsh_canvas_arrange（remove / duplicate / link / unlink）
 // ---------------------------------------------------------------------------
 
 async function canvasArrange(call: ToolCall): Promise<ToolResult> {
@@ -528,7 +528,7 @@ async function canvasArrange(call: ToolCall): Promise<ToolResult> {
 }
 
 // ---------------------------------------------------------------------------
-// canvas_style（list / get / set / template）
+// dsh_canvas_style（list / get / set / template）
 // ---------------------------------------------------------------------------
 
 function formatStyleList(cwd: string): string {
@@ -546,7 +546,7 @@ function formatStyleList(cwd: string): string {
   return (
     `${catalog.notice}\n\n可选设计风格（项目级锁定）：\n${lines.join('\n')}\n\n` +
     `当前：${current ? `已锁定 ${designStyleSummary(cwd, current)?.name ?? current}（${current}）` : '自由发挥（未锁定）'}\n` +
-    `锁定/切换：canvas_style（action=set, style_id=<id>）；回到自由发挥：style_id=free。\n` +
+    `锁定/切换：dsh_canvas_style（action=set, style_id=<id>）；回到自由发挥：style_id=free。\n` +
     `风格控制 token 外观；新营销页面默认先双首屏选稿，用 direction / prototype 读取内容匹配的构图与原型；不必先按风格名提问。`
   )
 }
@@ -613,7 +613,7 @@ function formatInteractionList(style: ResolvedStyle): string {
   const lines = [...byCat.entries()].map(([cat, items]) => `  ${cat}：${items.join('、')}`)
   return (
     `交互库（${ids.length}）：用 data-ts-* 标记 + 交互 ts-* 类声明，写入时自动注入共享运行时。\n${lines.join('\n')}\n` +
-    `  取骨架与用法：canvas_style（action=interaction, interaction_id=<id>）。\n\n`
+    `  取骨架与用法：dsh_canvas_style（action=interaction, interaction_id=<id>）。\n\n`
   )
 }
 
@@ -624,7 +624,7 @@ function manifest_interactionIds(style: ResolvedStyle): string[] {
 }
 
 // ---------------------------------------------------------------------------
-// codegen（canvas_style 的 action=codegen）：设计 → 生产代码
+// codegen（dsh_canvas_style 的 action=codegen）：设计 → 生产代码
 // ---------------------------------------------------------------------------
 
 const WEB_TARGETS = new Set(['react', 'css-vars', 'tailwind', 'shadcn', 'antd'])
@@ -649,7 +649,7 @@ function resolveCodegenHtml(call: ToolCall): { html: string | null; label: strin
     const html = readPageHtml(call.cwd, node.id)
     if (html !== null) return { html, label: `页面「${node.title}」(id=${node.id})` }
   }
-  if (project.nodes.length === 0) return { html: null, label: '', error: '画布上没有页面；请先用 canvas_upsert_page 写入原型，或用 html 直接传入。' }
+  if (project.nodes.length === 0) return { html: null, label: '', error: '画布上没有页面；请先用 dsh_canvas_upsert_page 写入原型，或用 html 直接传入。' }
   return { html: null, label: '', error: `画布上有 ${project.nodes.length} 个页面，请用 page_id 指定一个，或用 html 直接传入。` }
 }
 
@@ -783,7 +783,7 @@ async function canvasCodegen(call: ToolCall): Promise<ToolResult> {
   return {
     content:
       `已生成 ${files.length} 个文件（${label}，target=${target}${call.args.stack ? `，stack=${call.args.stack}` : ''}）：\n\n${body}\n\n` +
-      `（如需落盘：传 write_files=true 或 out_dir。<name> 会写到 <cwd>/.tianshu-canvas/exports/ 下。）\n\n${codegenCaveat(target)}`,
+      `（如需落盘：传 write_files=true 或 out_dir。<name> 会写到 <cwd>/.dsh-canvas/exports/ 下。）\n\n${codegenCaveat(target)}`,
   }
 }
 
@@ -871,7 +871,7 @@ async function canvasStyle(call: ToolCall): Promise<ToolResult> {
       return {
         content:
           `已取到模板「${doc.name}」（风格 ${styleId}，设备 ${doc.device}）。\n` +
-          `直接把下面的 HTML 作为 canvas_upsert_page 的 html 传入即可（样式块会在写入时注入）：\n\n` +
+          `直接把下面的 HTML 作为 dsh_canvas_upsert_page 的 html 传入即可（样式块会在写入时注入）：\n\n` +
           doc.html,
       }
     }
@@ -889,7 +889,7 @@ async function canvasStyle(call: ToolCall): Promise<ToolResult> {
       }
       const doc = interactionDocument(call.cwd, styleId, interactionId)
       if (!doc) {
-        return { content: `未知的交互模式：${interactionId}。用 canvas_style（action=get）查看交互清单。`, isError: true }
+        return { content: `未知的交互模式：${interactionId}。用 dsh_canvas_style（action=get）查看交互清单。`, isError: true }
       }
       const struct = doc.requiredStructure.length ? `必需结构：\n${doc.requiredStructure.map((s) => `  - ${s}`).join('\n')}\n` : ''
       const attrs = doc.requiredAttrs.length ? `必需属性：\n${doc.requiredAttrs.map((s) => `  - ${s}`).join('\n')}\n` : ''
@@ -911,14 +911,14 @@ async function canvasStyle(call: ToolCall): Promise<ToolResult> {
 }
 
 // ---------------------------------------------------------------------------
-// canvas_check_style（只报告，不阻塞）
+// dsh_canvas_check_style（只报告，不阻塞）
 // ---------------------------------------------------------------------------
 
 async function canvasCheckStyle(call: ToolCall): Promise<ToolResult> {
   const inlineHtml = str(call.args.html)
   const override = str(call.args.style_id)
   if (override && override !== 'free' && !designStyleExists(call.cwd, override)) {
-    return { content: `未知的设计风格：${override}。可用 canvas_style（action=list）查看可选风格。`, isError: true }
+    return { content: `未知的设计风格：${override}。可用 dsh_canvas_style（action=list）查看可选风格。`, isError: true }
   }
   const styleId = override === 'free' ? null : (override ?? currentStyleId(call.cwd))
   const pageTheme = (html: string): string | null => override !== undefined ? styleId : (styleId ?? readDesignMarker(html)?.styleId ?? null)
@@ -957,7 +957,7 @@ async function canvasCheckStyle(call: ToolCall): Promise<ToolResult> {
 }
 
 // ---------------------------------------------------------------------------
-// canvas_design_system（create / list / get / remove）—— 项目级自定义设计系统
+// dsh_canvas_design_system（create / list / get / remove）—— 项目级自定义设计系统
 // ---------------------------------------------------------------------------
 
 function builtinIds(): string[] {
@@ -967,7 +967,7 @@ function builtinIds(): string[] {
 function formatCustomList(cwd: string): string {
   const customs = loadCustomSummaries(cwd, designDir())
   if (customs.length === 0) {
-    return `当前项目还没有自定义设计系统（目录：${libraryDir(cwd)}）。\n用 canvas_design_system（action=create）创建一套。`
+    return `当前项目还没有自定义设计系统（目录：${libraryDir(cwd)}）。\n用 dsh_canvas_design_system（action=create）创建一套。`
   }
   const current = currentStyleId(cwd)
   const lines = customs.map(
@@ -975,7 +975,7 @@ function formatCustomList(cwd: string): string {
       `- ${s.name}（${s.id}）${s.id === current ? ' ← 当前' : ''}\n` +
       `  色板 ${s.swatches.join(' ')}；图标 ${s.counts.icons} 个、组件 ${s.counts.components} 个；模板 ${s.templates.map((t) => t.name).join(' / ') || '无'}`,
   )
-  return `本项目自定义设计系统（${customs.length} 套，仅本工作区生效）：\n${lines.join('\n')}\n\n查看细节：canvas_design_system（action=get, id=<id>）。`
+  return `本项目自定义设计系统（${customs.length} 套，仅本工作区生效）：\n${lines.join('\n')}\n\n查看细节：dsh_canvas_design_system（action=get, id=<id>）。`
 }
 
 async function canvasDesignSystem(call: ToolCall): Promise<ToolResult> {
@@ -1036,7 +1036,7 @@ async function canvasDesignSystem(call: ToolCall): Promise<ToolResult> {
         const result = createCustomStyle(call.cwd, id, extracted.tokens, {
           name: call.args.name ?? `${id}（反抽取）`,
           tagline: call.args.tagline ?? '从现有页面反抽取',
-          description: call.args.description ?? '由 canvas_design_system extract 从现有 HTML/CSS 反抽取生成。',
+          description: call.args.description ?? '由 dsh_canvas_design_system extract 从现有 HTML/CSS 反抽取生成。',
           tags: call.args.tags,
           swatches: call.args.swatches ?? Object.values((extracted.tokens.color as { primitives: { neutral: Record<string, string> } }).primitives.neutral).slice(0, 4),
           iconStyle: call.args.iconStyle ?? extracted.iconStyle,
@@ -1054,7 +1054,7 @@ async function canvasDesignSystem(call: ToolCall): Promise<ToolResult> {
         return { result, applied }
       })
 
-      let lockLine = '未锁定（如需使用：canvas_style action=set）。'
+      let lockLine = '未锁定（如需使用：dsh_canvas_style action=set）。'
       if (applied) {
         const { url: canvasUrl } = await ensureServer(call.cwd)
         lockLine = `已锁定为当前项目风格：重写 ${applied.pagesUpdated} 个页面（画布会自动刷新）。\n画布 URL：${canvasUrl}`
@@ -1064,7 +1064,7 @@ async function canvasDesignSystem(call: ToolCall): Promise<ToolResult> {
         content:
           `${summary}\n\n已创建自定义设计系统「${result.summary.name}」（${id}）并完成校验。\n` +
           `文件：${libraryDir(call.cwd)}/${id}/{tokens.json,meta.json}\n${lockLine}\n` +
-          `（只在本工作区生效，随 .tianshu-canvas/ 一起被 gitignore。）`,
+          `（只在本工作区生效，随 .dsh-canvas/ 一起被 gitignore。）`,
       }
     }
 
@@ -1122,7 +1122,7 @@ async function canvasDesignSystem(call: ToolCall): Promise<ToolResult> {
           {
             name: call.args.name ?? imported.name,
             tagline: call.args.tagline ?? imported.tagline,
-            description: call.args.description ?? `由 canvas_design_system import 从现有 ${adapterId} 主题导入（观测 ${imported.observed.length} 项 / 推断 ${imported.inferred.length} 项）。`,
+            description: call.args.description ?? `由 dsh_canvas_design_system import 从现有 ${adapterId} 主题导入（观测 ${imported.observed.length} 项 / 推断 ${imported.inferred.length} 项）。`,
             tags: call.args.tags ?? [adapterId, 'imported'],
             swatches: call.args.swatches ?? swatches,
             iconStyle: call.args.iconStyle ?? imported.iconStyle,
@@ -1140,7 +1140,7 @@ async function canvasDesignSystem(call: ToolCall): Promise<ToolResult> {
         return { result, applied }
       })
 
-      let lockLine = '未锁定（如需使用：canvas_style action=set）。'
+      let lockLine = '未锁定（如需使用：dsh_canvas_style action=set）。'
       if (applied) {
         const { url } = await ensureServer(call.cwd)
         lockLine = `已锁定为当前项目风格：重写 ${applied.pagesUpdated} 个页面（画布会自动刷新）。\n画布 URL：${url}`
@@ -1150,7 +1150,7 @@ async function canvasDesignSystem(call: ToolCall): Promise<ToolResult> {
         content:
           `${summary}\n已创建自定义设计系统「${result.summary.name}」（${id}）并完成校验。\n` +
           `文件：${libraryDir(call.cwd)}/${id}/{tokens.json,meta.json}\n${lockLine}\n` +
-          `注意：自定义设计系统只在本工作区生效（随 .tianshu-canvas/ 一起被 gitignore）。`,
+          `注意：自定义设计系统只在本工作区生效（随 .dsh-canvas/ 一起被 gitignore）。`,
       }
     }
 
@@ -1175,7 +1175,7 @@ async function canvasDesignSystem(call: ToolCall): Promise<ToolResult> {
         return { result, applied }
       })
 
-      let lockLine = '未锁定（如需使用：canvas_style action=set）。'
+      let lockLine = '未锁定（如需使用：dsh_canvas_style action=set）。'
       if (applied) {
         const { url } = await ensureServer(call.cwd)
         lockLine =
@@ -1192,14 +1192,14 @@ async function canvasDesignSystem(call: ToolCall): Promise<ToolResult> {
           `${result.summary.swatches.length} 个色卡、图标 ${result.summary.counts.icons} 个、组件 ${result.summary.counts.components} 个（共享，不可扩展）。\n` +
           `文件：${libraryDir(call.cwd)}/${id}/{tokens.json,meta.json}\n` +
           `${lockLine}${warnLine}\n` +
-          `注意：自定义设计系统只在本工作区生效（随 .tianshu-canvas/ 一起被 gitignore）。`,
+          `注意：自定义设计系统只在本工作区生效（随 .dsh-canvas/ 一起被 gitignore）。`,
       }
     }
 
     if (action === 'export') {
       const id = str(call.args.id) ?? currentStyleId(call.cwd) ?? ''
       if (!id) return { content: 'export 需要 id（或先锁定一套自定义风格）。', isError: true }
-      if (isBuiltinStyle(id)) return { content: `「${id}」是内置风格，不支持导出为品牌包（用 canvas_style action=get 查看 token）。`, isError: true }
+      if (isBuiltinStyle(id)) return { content: `「${id}」是内置风格，不支持导出为品牌包（用 dsh_canvas_style action=get 查看 token）。`, isError: true }
       let pack
       try {
         pack = buildBrandPack(call.cwd, id, designDir())
@@ -1219,7 +1219,7 @@ async function canvasDesignSystem(call: ToolCall): Promise<ToolResult> {
           `已导出品牌包「${pack.name}」（${id}）：${file}\n` +
           `包含：tokens、meta（含适配器绑定）、使用记忆（组件/图标/变量）、校验命中记录。\n` +
           `checksum：${pack.checksum.slice(0, 16)}…（导入时会校验）\n` +
-          `把它复制到目标工作区后，用 canvas_design_system（action=import_pack, pack_path=<该文件>）导入。`,
+          `把它复制到目标工作区后，用 dsh_canvas_design_system（action=import_pack, pack_path=<该文件>）导入。`,
       }
     }
 
@@ -1285,7 +1285,7 @@ async function canvasDesignSystem(call: ToolCall): Promise<ToolResult> {
 }
 
 // ---------------------------------------------------------------------------
-// canvas_audit（contract / a11y / visual / baseline / drift）—— Design CI
+// dsh_canvas_audit（contract / a11y / visual / baseline / drift）—— Design CI
 // ---------------------------------------------------------------------------
 
 function resolveAuditStyle(call: ToolCall): { styleId: string | null; style: ReturnType<typeof resolveDesignStyle> } {
@@ -1428,7 +1428,7 @@ async function canvasAudit(call: ToolCall): Promise<ToolResult> {
 }
 
 // ---------------------------------------------------------------------------
-// canvas_comments（list / resolve / reopen / remove）—— 元素批注
+// dsh_canvas_comments（list / resolve / reopen / remove）—— 元素批注
 // ---------------------------------------------------------------------------
 
 function formatComment(c: Comment, index: number, project: Project): string {
@@ -1465,8 +1465,8 @@ async function canvasComments(call: ToolCall): Promise<ToolResult> {
       return {
         content:
           `待处理批注 ${sorted.length} 条${resolved ? `（另有 ${resolved} 条已解决）` : ''}：\n\n${body}\n\n` +
-          `请逐条按 xpath 定位并修改（通常用 canvas_upsert_page 重写该页 HTML）；改完后调用 ` +
-          `canvas_comments（action=resolve, ids=[...]）标记已解决。`,
+          `请逐条按 xpath 定位并修改（通常用 dsh_canvas_upsert_page 重写该页 HTML）；改完后调用 ` +
+          `dsh_canvas_comments（action=resolve, ids=[...]）标记已解决。`,
       }
     }
 
@@ -1509,7 +1509,7 @@ async function canvasComments(call: ToolCall): Promise<ToolResult> {
 export const tools: TpiTool[] = [
   {
     definition: {
-      name: 'canvas_open',
+      name: 'dsh_canvas_open',
       description: '【第一步】启动/复用本工作区的本地画布服务并返回画布 URL；必须先把该 URL 单独一行发给用户，再开始设计',
       input_schema: {
         type: 'object',
@@ -1530,13 +1530,13 @@ export const tools: TpiTool[] = [
   },
   {
     definition: {
-      name: 'canvas_upsert_page',
-      description: '新增或更新画布页面节点（写入 HTML 原型，或仅改标题/位置/尺寸；可选内联资源）。先 canvas_open；营销页面默认双首屏选稿，已有品牌和指定布局优先，用户选择后原位深化',
+      name: 'dsh_canvas_upsert_page',
+      description: '新增或更新画布页面节点（写入 HTML 原型，或仅改标题/位置/尺寸；可选内联资源）。先 dsh_canvas_open；营销页面默认双首屏选稿，已有品牌和指定布局优先，用户选择后原位深化',
       input_schema: {
         type: 'object',
         properties: {
           html_path: { type: 'string', description: '已有 HTML 文件路径（工作区内，优先于 html）；一般不要用，请直接用 html 内联，避免在工作区产生多余文件' },
-          html: { type: 'string', description: '内联 HTML（推荐方式：原型只存放在 .tianshu-canvas/pages/，不要另建文件夹）。原型必须自包含：外链与相对路径会被画布 CSP 拦截，请内联。更新已有页面的元数据时可省略' },
+          html: { type: 'string', description: '内联 HTML（推荐方式：原型只存放在 .dsh-canvas/pages/，不要另建文件夹）。原型必须自包含：外链与相对路径会被画布 CSP 拦截，请内联。更新已有页面的元数据时可省略' },
           title: { type: 'string', description: '页面标题' },
           id: { type: 'string', description: '页面 id（字母数字/_/-）。缺省则新建并自动生成；传已存在的 id 则更新该页面，未指定的字段保持原值' },
           x: { type: 'number', description: '画布 X 坐标（新建缺省按网格自动排布；更新缺省保持原位）' },
@@ -1576,7 +1576,7 @@ export const tools: TpiTool[] = [
   },
   {
     definition: {
-      name: 'canvas_get_state',
+      name: 'dsh_canvas_get_state',
       description: '读取画布状态：页面节点、连线、用户当前选中项与画布 URL',
       input_schema: { type: 'object', properties: {}, required: [], additionalProperties: false },
     },
@@ -1589,7 +1589,7 @@ export const tools: TpiTool[] = [
   },
   {
     definition: {
-      name: 'canvas_arrange',
+      name: 'dsh_canvas_arrange',
       description: '编排画布：删除/复制页面节点、页面间连线或取消连线',
       input_schema: {
         type: 'object',
@@ -1618,7 +1618,7 @@ export const tools: TpiTool[] = [
   },
   {
     definition: {
-      name: 'canvas_style',
+      name: 'dsh_canvas_style',
       description: '管理设计风格，按需读取原创原型和视觉方向，保存页面简报及用户确认，读取模板与交互或导出代码。营销页面默认先出两个不同首屏，用户选择后深化；已有品牌与锁定风格优先',
       input_schema: {
         type: 'object',
@@ -1629,7 +1629,7 @@ export const tools: TpiTool[] = [
             description:
               'list=列出可选风格与当前状态；get=查看某风格的 token/组件类/图标名/交互清单；' +
               'prototype=列出原型或用 prototype_id 读完整 HTML；direction=列出方向或用 direction_id 读原创示例；brief=读取或用 brief 对象保存 page_id 的简报；' +
-              'set=锁定或切换风格；template=取 dashboard/landing 模板的完整 HTML，可直接传给 canvas_upsert_page；' +
+              'set=锁定或切换风格；template=取 dashboard/landing 模板的完整 HTML，可直接传给 dsh_canvas_upsert_page；' +
               'interaction=取某个交互模式（tabs/modal/drawer 等）的骨架 HTML 与用法，可直接放进页面；' +
               'codegen=导出生产代码（**必须先问用户要哪种目标**，不要自行假定）',
           },
@@ -1673,7 +1673,7 @@ export const tools: TpiTool[] = [
           },
           page_id: { type: 'string', description: 'brief：必填关联页面 ID；codegen：要转换的页面 id，省略时若画布只有一个页面则用它' },
           html: { type: 'string', description: 'codegen：直接传入源 HTML（优先于 page_id）' },
-          out_dir: { type: 'string', description: 'codegen：落盘目录（默认 .tianshu-canvas/exports/<target>/）。宿主会把该参数规范化为绝对路径' },
+          out_dir: { type: 'string', description: 'codegen：落盘目录（默认 .dsh-canvas/exports/<target>/）。宿主会把该参数规范化为绝对路径' },
           write_files: { type: 'boolean', description: 'codegen：是否写到磁盘（默认 false，直接返回文件内容）' },
         },
         required: ['action'],
@@ -1689,7 +1689,7 @@ export const tools: TpiTool[] = [
   },
   {
     definition: {
-      name: 'canvas_check_style',
+      name: 'dsh_canvas_check_style',
       description: '只读检查页面是否符合当前设计风格，输出分级报告',
       input_schema: {
         type: 'object',
@@ -1714,8 +1714,8 @@ export const tools: TpiTool[] = [
   },
   {
     definition: {
-      name: 'canvas_design_system',
-      description: '创建/查看/删除当前项目的自定义设计系统（.tianshu-canvas/library/），从现有 HTML/CSS/URL 反抽取、从仓库 shadcn/AntD 主题导入，或导出/导入可移植品牌包',
+      name: 'dsh_canvas_design_system',
+      description: '创建/查看/删除当前项目的自定义设计系统（.dsh-canvas/library/），从现有 HTML/CSS/URL 反抽取、从仓库 shadcn/AntD 主题导入，或导出/导入可移植品牌包',
       input_schema: {
         type: 'object',
         properties: {
@@ -1741,7 +1741,7 @@ export const tools: TpiTool[] = [
           },
           out_dir: {
             type: 'string',
-            description: 'export：品牌包落盘目录（默认 .tianshu-canvas/exports/）。宿主会把该参数规范化为绝对路径',
+            description: 'export：品牌包落盘目录（默认 .dsh-canvas/exports/）。宿主会把该参数规范化为绝对路径',
           },
           source: { type: 'string', description: 'extract：内联 HTML 或 CSS 文本（最高优先）' },
           path: { type: 'string', description: 'extract：工作区内的 HTML/CSS 文件路径。宿主会把该参数规范化为绝对路径' },
@@ -1792,7 +1792,7 @@ export const tools: TpiTool[] = [
   },
   {
     definition: {
-      name: 'canvas_audit',
+      name: 'dsh_canvas_audit',
       description: '设计 CI 审计：设计契约、可访问性、视觉回归、设计漂移；review 对指定页面生成桌面/平板/手机截图与客观报告，审美判断需要真实读图和用户评审',
       input_schema: {
         type: 'object',
@@ -1809,11 +1809,11 @@ export const tools: TpiTool[] = [
           write_files: { type: 'boolean', description: 'contract：把可独立运行的 *.audit.test.mjs 落到 out_dir（默认 false）' },
           out_dir: {
             type: 'string',
-            description: 'contract：测试文件落盘目录；drift：快照目录；review：截图与报告目录，必须在工作区内（默认 .tianshu-canvas/audit/review）',
+            description: 'contract：测试文件落盘目录；drift：快照目录；review：截图与报告目录，必须在工作区内（默认 .dsh-canvas/audit/review）',
           },
           baseline_dir: {
             type: 'string',
-            description: 'visual/baseline：基线目录（默认 .tianshu-canvas/audit/baseline，被 gitignore；要团队共享就指到仓库内目录）',
+            description: 'visual/baseline：基线目录（默认 .dsh-canvas/audit/baseline，被 gitignore；要团队共享就指到仓库内目录）',
           },
           threshold: { type: 'number', description: 'visual：单通道像素差阈值（0–255，默认 8，用于容忍抗锯齿）' },
           update_missing: { type: 'boolean', description: 'visual：缺少基线的页面是否顺手写入（默认 false）' },
@@ -1834,7 +1834,7 @@ export const tools: TpiTool[] = [
   },
   {
     definition: {
-      name: 'canvas_comments',
+      name: 'dsh_canvas_comments',
       description: '读取/处理用户在画布上留下的元素批注：列出待办、批量标记已解决/重开/删除',
       input_schema: {
         type: 'object',

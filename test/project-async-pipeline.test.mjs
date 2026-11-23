@@ -34,14 +34,14 @@ after(async () => { delete globalThis.__tianshuCapacityFetch; await api.shutdown
 
 function fixture() {
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-async-capacity-'))
-  mkdirSync(join(cwd, '.tianshu-canvas/pages'), { recursive: true })
-  return { cwd, lock: join(cwd, '.tianshu-canvas/project.lock'), file: join(cwd, '.tianshu-canvas/project.json'), cleanup: () => rmSync(cwd, { recursive: true, force: true }) }
+  mkdirSync(join(cwd, '.dsh-canvas/pages'), { recursive: true })
+  return { cwd, lock: join(cwd, '.dsh-canvas/project.lock'), file: join(cwd, '.dsh-canvas/project.json'), cleanup: () => rmSync(cwd, { recursive: true, force: true }) }
 }
 const call = (ws, name, args) => tools[name].execute({ args, cwd: ws.cwd, sessionId: 'controlled-resource-regression' })
-const upsert = (ws, args) => call(ws, 'canvas_upsert_page', args)
+const upsert = (ws, args) => call(ws, 'dsh_canvas_upsert_page', args)
 const assertOkay = result => assert.ok(!result.isError, result.content)
 const project = ws => JSON.parse(readFileSync(ws.file, 'utf8'))
-const body = (ws, id) => readFileSync(join(ws.cwd, '.tianshu-canvas/pages', id + '.html'), 'utf8')
+const body = (ws, id) => readFileSync(join(ws.cwd, '.dsh-canvas/pages', id + '.html'), 'utf8')
 function tree(dir) {
   return Object.fromEntries(readdirSync(dir, { withFileTypes: true }).flatMap(item => item.isDirectory() ? Object.entries(tree(join(dir, item.name))).map(([name, digest]) => [item.name + '/' + name, digest]) : [[item.name, createHash('sha256').update(readFileSync(join(dir, item.name))).digest('hex')]]))
 }
@@ -70,7 +70,7 @@ test('资源等待不持锁；已有页面在等待期间重命名移动换肤�
     await gate.started
     assertOkay(await upsert(ws, { id: 'page-edit', title: 'latest title', x: 432, y: 765, width: 390, height: 844 }))
     assertOkay(await upsert(ws, { id: 'page-target', title: 'new target', html: '<p>new target</p>' }))
-    assertOkay(await call(ws, 'canvas_style', { action: 'set', style_id: 'apple' }))
+    assertOkay(await call(ws, 'dsh_canvas_style', { action: 'set', style_id: 'apple' }))
     gate.release()
     assertOkay(await pending)
     const actual = project(ws).nodes.find(node => node.id === 'page-edit')
@@ -106,7 +106,7 @@ test('真实内联管线经受控fetch膨胀超8MiB，工具拒绝且所有正�
   let gate
   try {
     assertOkay(await upsert(ws, { id: 'page-existing', html: '<p>retained</p>' }))
-    const before = tree(join(ws.cwd, '.tianshu-canvas'))
+    const before = tree(join(ws.cwd, '.dsh-canvas'))
     const prefix = '<html><body><img src="https://cdn.example.com/icon.png">'
     const suffix = '</body></html>'
     const source = prefix + 'a'.repeat(8 * 1024 * 1024 - 200 - Buffer.byteLength(prefix + suffix)) + suffix
@@ -118,7 +118,7 @@ test('真实内联管线经受控fetch膨胀超8MiB，工具拒绝且所有正�
     const rejected = await pending
     assert.equal(rejected.isError, true)
     assert.match(rejected.content, /8\s*MiB|8388608/i)
-    assert.deepEqual(tree(join(ws.cwd, '.tianshu-canvas')), before)
+    assert.deepEqual(tree(join(ws.cwd, '.dsh-canvas')), before)
     assert.equal(existsSync(ws.lock), false)
   } finally { gate?.release(); ws.cleanup() }
 })

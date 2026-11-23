@@ -84,7 +84,7 @@ export interface ApiSelection {
 }
 
 const API_ROOT = location.pathname.replace(/\/$/, '')
-const MUTATION_HEADERS = { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1' }
+const MUTATION_HEADERS = { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1' }
 
 export class ApiRequestError extends Error {
   constructor(readonly status: number, message: string) {

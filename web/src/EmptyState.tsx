@@ -46,7 +46,7 @@ export function EmptyState() {
       </div>
 
       <p className="empty-state__title">画布还是空白的</p>
-      <p className="empty-state__desc">让天枢生成一个前端原型页面，再调用 canvas_upsert_page 贴到这块白板上。</p>
+      <p className="empty-state__desc">让DSH生成一个前端原型页面，再调用 dsh_canvas_upsert_page 贴到这块白板上。</p>
 
       <div className="empty-state__shortcuts">
         <ShortcutRow keys={<><Keycap>空格</Keycap><PointerKeycap>中键拖拽</PointerKeycap></>} label="平移" />

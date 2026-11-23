@@ -107,10 +107,10 @@ test('交互 e2e：画布侧原生默认行为 + 交互库脚本可运行', { sk
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-ie2e-'))
   let browser
   try {
-    const open = await tools.canvas_open.execute({ input: { port: 0 }, cwd })
+    const open = await tools.dsh_canvas_open.execute({ input: { port: 0 }, cwd })
     const url = open.content.match(/http:\/\/127\.0\.0\.1:\d+\/w\/[0-9a-f]{32}\/\?ws=[0-9a-f]{32}#[0-9a-f]{64}/)[0]
-    await tools.canvas_style.execute({ input: { action: 'set', style_id: 'apple' }, cwd })
-    const add = await tools.canvas_upsert_page.execute({ input: { html: PAGE_INTERACTIVE, title: '交互页' }, cwd })
+    await tools.dsh_canvas_style.execute({ input: { action: 'set', style_id: 'apple' }, cwd })
+    const add = await tools.dsh_canvas_upsert_page.execute({ input: { html: PAGE_INTERACTIVE, title: '交互页' }, cwd })
     const id = add.content.match(/id=([\w-]+)/)[1]
 
     browser = await puppeteer.launch({ executablePath: browserPath, headless: true, args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'] })
@@ -244,22 +244,22 @@ test('导出 e2e：多页站 file:// 可跳转、可交互', { skip: !browserPat
   const outDir = mkdtempSync(join(tmpdir(), 'tsc-site-'))
   let browser
   try {
-    const open = await tools.canvas_open.execute({ input: { port: 0 }, cwd })
+    const open = await tools.dsh_canvas_open.execute({ input: { port: 0 }, cwd })
     const url = open.content.match(/http:\/\/127\.0\.0\.1:\d+\/w\/[0-9a-f]{32}\/\?ws=[0-9a-f]{32}#[0-9a-f]{64}/)[0]
     const token = new URL(url).searchParams.get('ws')
     const base = new URL(url).origin
-    await tools.canvas_style.execute({ input: { action: 'set', style_id: 'apple' }, cwd })
+    await tools.dsh_canvas_style.execute({ input: { action: 'set', style_id: 'apple' }, cwd })
 
-    const b = await tools.canvas_upsert_page.execute({ input: { html: PAGE_INTERACTIVE, title: '交互页' }, cwd })
+    const b = await tools.dsh_canvas_upsert_page.execute({ input: { html: PAGE_INTERACTIVE, title: '交互页' }, cwd })
     const idB = b.content.match(/id=([\w-]+)/)[1]
-    await tools.canvas_upsert_page.execute({
+    await tools.dsh_canvas_upsert_page.execute({
       input: { html: `<html><head></head><body><h1>首页</h1><a id="toB" href="交互页.html">去交互页</a></body></html>`, title: '首页' },
       cwd,
     })
 
     const resp = await fetch(`${base}/api/export`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1' },
+      headers: { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1' },
       body: JSON.stringify({ ws: token, kind: 'zip' }),
     })
     const j = await resp.json()

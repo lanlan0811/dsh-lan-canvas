@@ -14,12 +14,12 @@ const browserPath = resolveTestBrowser()
 test('自由模式：页面实际主题参与默认自检，伪造注释或脚本不能保留主题', async () => {
   const cwd=mkdtempSync(join(tmpdir(),'tsc-theme-review-'))
   try {
-    const resource=JSON.parse((await tools.canvas_style.execute({input:{action:'prototype',prototype_id:'product-story'},cwd})).content)
+    const resource=JSON.parse((await tools.dsh_canvas_style.execute({input:{action:'prototype',prototype_id:'product-story'},cwd})).content)
     const broken=resource.html.replace('</main>','<p class="tp-unregistered" style="color:var(--ts-color-does-not-exist)">坏契约</p></main>')
-    const up=await tools.canvas_upsert_page.execute({input:{id:'theme-review',title:'Theme',html:broken},cwd})
+    const up=await tools.dsh_canvas_upsert_page.execute({input:{id:'theme-review',title:'Theme',html:broken},cwd})
     assert.ok(!up.isError,up.content)
     for(const input of [{page_id:'theme-review'},{html:broken},{}]){
-      const result=await tools.canvas_check_style.execute({input,cwd})
+      const result=await tools.dsh_canvas_check_style.execute({input,cwd})
       assert.match(result.content,/tp-unregistered/)
       assert.match(result.content,/--ts-color-does-not-exist/)
     }
@@ -30,9 +30,9 @@ test('自由模式：页面实际主题参与默认自检，伪造注释或脚�
     assert.match(plain, /<main data-example="plain">/)
     assert.doesNotMatch(plain, /<main data-ts-prototype="product-story">/)
     for(const marker of ['<!-- data-ts-prototype="product-story" -->',`<script>var label='data-ts-prototype="product-story"'</script>`,'<main data-ts-prototype="unregistered"></main>']){
-      const result=await tools.canvas_upsert_page.execute({input:{id:'plain-theme',html:plain.replace('<body>','<body>'+marker),title:'Plain'},cwd})
+      const result=await tools.dsh_canvas_upsert_page.execute({input:{id:'plain-theme',html:plain.replace('<body>','<body>'+marker),title:'Plain'},cwd})
       assert.ok(!result.isError,result.content)
-      const saved=readFileSync(join(cwd,'.tianshu-canvas/pages/plain-theme.html'),'utf8')
+      const saved=readFileSync(join(cwd,'.dsh-canvas/pages/plain-theme.html'),'utf8')
       assert.doesNotMatch(saved,/tianshu-ds:start/)
     }
   } finally {rmSync(cwd,{recursive:true,force:true})}
@@ -41,22 +41,22 @@ test('自由模式：页面实际主题参与默认自检，伪造注释或脚�
 test('原创原型：自由项目保持自包含，项目锁优先；普通自由页仍剥离旧主题', async () => {
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-composition-'))
   try {
-    const resource = JSON.parse((await tools.canvas_style.execute({input:{action:'prototype',prototype_id:'resource-catalog'},cwd})).content)
+    const resource = JSON.parse((await tools.dsh_canvas_style.execute({input:{action:'prototype',prototype_id:'resource-catalog'},cwd})).content)
     assert.ok(resource.html.includes('tianshu-tokens'))
-    const result = await tools.canvas_upsert_page.execute({input:{title:'原型',html:resource.html},cwd})
+    const result = await tools.dsh_canvas_upsert_page.execute({input:{title:'原型',html:resource.html},cwd})
     assert.ok(!result.isError, result.content)
     const id = result.content.match(/id=([\w-]+)/)[1]
-    let saved = readFileSync(join(cwd,'.tianshu-canvas/pages',id+'.html'),'utf8')
+    let saved = readFileSync(join(cwd,'.dsh-canvas/pages',id+'.html'),'utf8')
     assert.match(saved,/tianshu-tokens/)
     assert.match(saved,/tianshu-interactions/)
-    assert.equal(JSON.parse(readFileSync(join(cwd,'.tianshu-canvas/project.json'),'utf8')).design,undefined)
-    await tools.canvas_upsert_page.execute({input:{id,html:saved},cwd})
-    saved = readFileSync(join(cwd,'.tianshu-canvas/pages',id+'.html'),'utf8')
+    assert.equal(JSON.parse(readFileSync(join(cwd,'.dsh-canvas/project.json'),'utf8')).design,undefined)
+    await tools.dsh_canvas_upsert_page.execute({input:{id,html:saved},cwd})
+    saved = readFileSync(join(cwd,'.dsh-canvas/pages',id+'.html'),'utf8')
     assert.equal(saved.split('tianshu-ds:start').length-1,1)
-    await tools.canvas_style.execute({input:{action:'set',style_id:'tianshu-inkstone'},cwd})
-    saved = readFileSync(join(cwd,'.tianshu-canvas/pages',id+'.html'),'utf8')
+    await tools.dsh_canvas_style.execute({input:{action:'set',style_id:'tianshu-inkstone'},cwd})
+    saved = readFileSync(join(cwd,'.dsh-canvas/pages',id+'.html'),'utf8')
     assert.match(saved,/style=tianshu-inkstone/)
-    const lint = await tools.canvas_check_style.execute({input:{html:'<div class="tp-unregistered ts-no-such-component">test</div>',style_id:'tianshu-original'},cwd})
+    const lint = await tools.dsh_canvas_check_style.execute({input:{html:'<div class="tp-unregistered ts-no-such-component">test</div>',style_id:'tianshu-original'},cwd})
     assert.match(lint.content,/tp-unregistered/)
     assert.match(lint.content,/ts-no-such-component/)
   } finally { rmSync(cwd,{recursive:true,force:true}) }
@@ -68,11 +68,11 @@ test('声明式绑定：过滤/计数/空态/分页、作用域隔离、聊天�
   try {
     const controls = '<section data-ts-filter data-ts-table-pages data-ts-page-size="2"><label>Search<input data-ts-filter-input></label><span data-ts-filter-count></span><p data-ts-filter-empty hidden>Empty</p><table><tbody><tr data-ts-filter-item="Alpha"><td>Alpha</td></tr><tr data-ts-filter-item="Beta"><td>Beta</td></tr><tr data-ts-filter-item="Gamma"><td>Gamma</td></tr></tbody></table><nav data-ts-pagination data-ts-total="2"><button data-ts-page-prev>Prev</button><button class="ts-i-pagination__item">1</button><button class="ts-i-pagination__item">2</button><button data-ts-page-next>Next</button></nav></section>'
     const html = '<html><body><main data-ts-prototype="test-bindings"><div id="first">'+controls+'</div><div id="second">'+controls+'</div><div data-ts-chat-messages></div><form data-ts-chat-form><label>Message<input name="message" required></label><button>Send</button></form><form data-ts-demo-save><label>Name<input name="name" required></label><button>Save</button><p data-ts-demo-feedback hidden></p></form></main></body></html>'
-    await tools.canvas_style.execute({input:{action:'set',style_id:'tianshu-original'},cwd})
-    const add=await tools.canvas_upsert_page.execute({input:{title:'Bindings',html},cwd})
+    await tools.dsh_canvas_style.execute({input:{action:'set',style_id:'tianshu-original'},cwd})
+    const add=await tools.dsh_canvas_upsert_page.execute({input:{title:'Bindings',html},cwd})
     assert.ok(!add.isError,add.content)
     const id=add.content.match(/id=([\w-]+)/)[1]
-    const open=await tools.canvas_open.execute({input:{port:0},cwd})
+    const open=await tools.dsh_canvas_open.execute({input:{port:0},cwd})
     const url=open.content.match(/http:\/\/127\.0\.0\.1:\d+\/w\/[0-9a-f]{32}\/\?ws=[0-9a-f]{32}#[0-9a-f]{64}/)[0]
     const puppeteer=(await import('puppeteer-core')).default
     browser=await puppeteer.launch({executablePath:browserPath,headless:true,args:process.platform==='linux'?['--no-sandbox']:[]})

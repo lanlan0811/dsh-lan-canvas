@@ -16,9 +16,9 @@ test('画布外壳：图标名称、可见焦点、导出键盘与重命名取�
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-shell-a11y-'))
   let browser
   try {
-    const result = await tools.canvas_upsert_page.execute({ cwd, input: { id: 'page-a11y', title: '键盘页面', html: '<html><head></head><body><h1>键盘页面</h1></body></html>', device_type: 'mobile' } })
+    const result = await tools.dsh_canvas_upsert_page.execute({ cwd, input: { id: 'page-a11y', title: '键盘页面', html: '<html><head></head><body><h1>键盘页面</h1></body></html>', device_type: 'mobile' } })
     assert.ok(!result.isError, result.content)
-    const opened = await tools.canvas_open.execute({ cwd, input: { port: 0 } })
+    const opened = await tools.dsh_canvas_open.execute({ cwd, input: { port: 0 } })
     const url = opened.content.split(String.fromCharCode(10)).find(line => line.startsWith('http://127.0.0.1:'))?.trim()
     assert.ok(url)
     browser = await (await import('puppeteer-core')).default.launch({ executablePath: browserPath, headless: true, args: ['--disable-gpu', '--disable-dev-shm-usage'] })

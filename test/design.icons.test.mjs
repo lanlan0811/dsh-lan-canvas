@@ -20,11 +20,11 @@ async function withProject(fn) {
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-ds-icons-'))
   const run = (name, input) => tools[name].execute({ input, cwd })
   const upsert = async (html) => {
-    const added = await run('canvas_upsert_page', { html, title: 'P' })
+    const added = await run('dsh_canvas_upsert_page', { html, title: 'P' })
     assert.ok(!added.isError, added.content)
     return { id: added.content.match(/id=([\w-]+)/)[1], content: added.content }
   }
-  const page = (id) => readFileSync(join(cwd, '.tianshu-canvas', 'pages', `${id}.html`), 'utf8')
+  const page = (id) => readFileSync(join(cwd, '.dsh-canvas', 'pages', `${id}.html`), 'utf8')
   try {
     await fn({ run, upsert, page })
   } finally {
@@ -39,10 +39,10 @@ const iconTag = (html) => html.match(/<svg\b[^>]*>/)[0]
 
 test('切换风格：图标只保留当前风格的描边属性', async () => {
   await withProject(async ({ run, upsert, page }) => {
-    await run('canvas_style', { action: 'set', style_id: 'apple' })
+    await run('dsh_canvas_style', { action: 'set', style_id: 'apple' })
     const { id } = await upsert(iconPage)
     for (const styleId of ['google', 'claude', 'tianshu-original', 'apple']) {
-      await run('canvas_style', { action: 'set', style_id: styleId })
+      await run('dsh_canvas_style', { action: 'set', style_id: styleId })
       const tag = iconTag(page(id))
       const widths = [...tag.matchAll(/stroke-width="([^"]+)"/g)].map((m) => m[1])
       assert.deepEqual(widths, [String(strokeOf(styleId).strokeWidth)], `${styleId}: ${tag}`)
@@ -55,17 +55,17 @@ test('切换风格：图标只保留当前风格的描边属性', async () => {
 
 test('注入幂等：重设同一风格不改写页面，切走再切回字节一致', async () => {
   await withProject(async ({ run, upsert, page }) => {
-    await run('canvas_style', { action: 'set', style_id: 'apple' })
+    await run('dsh_canvas_style', { action: 'set', style_id: 'apple' })
     const { id } = await upsert(iconPage)
     const first = page(id)
 
-    const again = await run('canvas_style', { action: 'set', style_id: 'apple' })
+    const again = await run('dsh_canvas_style', { action: 'set', style_id: 'apple' })
     assert.match(again.content, /重写 0 个页面/)
     assert.equal(page(id), first)
 
-    await run('canvas_style', { action: 'set', style_id: 'google' })
+    await run('dsh_canvas_style', { action: 'set', style_id: 'google' })
     assert.notEqual(page(id), first)
-    await run('canvas_style', { action: 'set', style_id: 'apple' })
+    await run('dsh_canvas_style', { action: 'set', style_id: 'apple' })
     assert.equal(page(id), first, '切回原风格应与首次注入完全一致')
 
     const { id: second } = await upsert(first)
@@ -75,11 +75,11 @@ test('注入幂等：重设同一风格不改写页面，切走再切回字节�
 
 test('注入块可逆：解除锁定后重新写入能还原原始字节', async () => {
   await withProject(async ({ run, upsert, page }) => {
-    await run('canvas_style', { action: 'set', style_id: 'claude' })
+    await run('dsh_canvas_style', { action: 'set', style_id: 'claude' })
     const source = '<!doctype html><html><head>\n  <title>T</title>\n</head><body><p>x</p></body></html>'
     const { id } = await upsert(source)
     const injected = page(id)
-    await run('canvas_style', { action: 'set', style_id: 'free' })
+    await run('dsh_canvas_style', { action: 'set', style_id: 'free' })
     const { id: restored } = await upsert(injected)
     assert.equal(page(restored), source)
   })
@@ -87,7 +87,7 @@ test('注入块可逆：解除锁定后重新写入能还原原始字节', async
 
 test('展开图标：脚本、样式和注释保持原样，并提示脚本里的图标', async () => {
   await withProject(async ({ run, upsert, page }) => {
-    await run('canvas_style', { action: 'set', style_id: 'apple' })
+    await run('dsh_canvas_style', { action: 'set', style_id: 'apple' })
     const script = `<script>el.innerHTML = "<svg data-icon='search'></svg>";</script>`
     const style = `<style>.a{background:url("data:image/svg+xml,<svg data-icon='bell'/>")}</style>`
     const comment = '<!-- <svg data-icon="home"></svg> -->'
@@ -109,7 +109,7 @@ test('展开图标：脚本、样式和注释保持原样，并提示脚本里�
 
 test('用户写在图标上的描边属性由当前风格接管', async () => {
   await withProject(async ({ run, upsert, page }) => {
-    await run('canvas_style', { action: 'set', style_id: 'google' })
+    await run('dsh_canvas_style', { action: 'set', style_id: 'google' })
     const { id } = await upsert(
       `<!doctype html><html><head></head><body><svg data-icon="search" stroke='red' fill=blue data-fill="keep"></svg></body></html>`,
     )
@@ -121,12 +121,12 @@ test('用户写在图标上的描边属性由当前风格接管', async () => {
 
 test('没有 html/head 标签的页面：样式块和探针都在 doctype 之后', async () => {
   await withProject(async ({ run, upsert, page }) => {
-    await run('canvas_style', { action: 'set', style_id: 'apple' })
+    await run('dsh_canvas_style', { action: 'set', style_id: 'apple' })
     const { id } = await upsert('<!-- 注释 -->\n<!doctype html><h1>片段</h1>')
     const saved = page(id)
     assert.ok(saved.toLowerCase().indexOf('<!doctype') < saved.indexOf('<style'), '样式块不应早于 doctype')
 
-    const open = await run('canvas_open', { port: 0 })
+    const open = await run('dsh_canvas_open', { port: 0 })
     const url = new URL(open.content.match(/http:\/\/127\.0\.0\.1:\d+\/w\/[0-9a-f]{32}\/\?ws=[0-9a-f]{32}#[0-9a-f]{64}/)[0])
     const served = await (await fetch(`${url.origin}/page/${id}?ws=${url.searchParams.get('ws')}`)).text()
     assert.ok(served.toLowerCase().indexOf('<!doctype') < served.indexOf('<script'), '探针不应早于 doctype')

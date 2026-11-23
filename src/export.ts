@@ -179,7 +179,7 @@ function removeProfile(userDataDir: string): void {
  * 启动无头浏览器：**自己 spawn Chromium，读 DevToolsActivePort 拿调试端点，再用 puppeteer.connect 接入**。
  *
  * 为什么不直接用 puppeteer.launch：它靠等 Chromium 往 stdout 打印 `DevTools listening on ws://…`
- * 来判断启动成功（@puppeteer/browsers launch.js 的 CDP_WEBSOCKET_ENDPOINT_REGEX）。在天枢宿主进程内
+ * 来判断启动成功（@puppeteer/browsers launch.js 的 CDP_WEBSOCKET_ENDPOINT_REGEX）。在DSH 宿主进程内
  * 该行拿不到，于是 Chromium 明明已启动（profile 里写下了 DevToolsActivePort）却抛出
  * `Failed to launch the browser process: Code: 0` 且 stderr 为空。
  * 走 DevToolsActivePort 则不依赖任何 stdout 文本。
@@ -368,11 +368,11 @@ function galleryHtml(cwd: string): string {
     )
     .join('\n')
   return `<!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><title>天枢画布设计 · 原型集</title>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>画布设计 · 原型集</title>
 <style>body{font-family:system-ui;margin:0;padding:24px;background:#faf7f0;color:#2b2b2b}
 h1{font-size:20px;font-family:"Kaiti SC","STKaiti","KaiTi",system-ui}h2{font-size:15px;margin:0 0 8px;font-family:"Kaiti SC","STKaiti","KaiTi",system-ui}section{margin:0 0 32px}small{color:#6b6152;font-weight:400}
 iframe{display:block}</style></head>
-<body><h1>天枢画布设计 · 原型集（共 ${project.nodes.length} 页）</h1>
+<body><h1>画布设计 · 原型集（共 ${project.nodes.length} 页）</h1>
 ${cards || '<p>（无页面）</p>'}
 </body></html>`
 }
@@ -427,7 +427,7 @@ export async function exportZip(cwd: string): Promise<ExportFile> {
   entries.push({ name: 'overview.html', data: Buffer.from(galleryHtml(cwd), 'utf8') })
   entries.push({
     name: 'index.html',
-    data: Buffer.from(navHomeHtml(pages.filter((p) => p.html), { title: '天枢画布设计 · 站点', hasAssets: Boolean(style) }), 'utf8'),
+    data: Buffer.from(navHomeHtml(pages.filter((p) => p.html), { title: '画布设计 · 站点', hasAssets: Boolean(style) }), 'utf8'),
   })
 
   const zip = buildZip(entries)

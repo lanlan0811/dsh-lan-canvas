@@ -20,7 +20,7 @@ function workspace() {
 }
 
 async function upsert(cwd, input) {
-  return tools.canvas_upsert_page.execute({ input, cwd })
+  return tools.dsh_canvas_upsert_page.execute({ input, cwd })
 }
 
 test('文本安全：HTML 含 RTL 覆盖符时拒绝写入，且给出位置', async () => {
@@ -31,7 +31,7 @@ test('文本安全：HTML 含 RTL 覆盖符时拒绝写入，且给出位置', a
     assert.equal(res.isError, true, res.content)
     assert.match(res.content, /U\+202E/)
     assert.match(res.content, /第 2 行第 7 列/, res.content)
-    assert.ok(!existsSync(join(cwd, '.tianshu-canvas', 'pages')) || readdirSync(join(cwd, '.tianshu-canvas', 'pages')).length === 0,
+    assert.ok(!existsSync(join(cwd, '.dsh-canvas', 'pages')) || readdirSync(join(cwd, '.dsh-canvas', 'pages')).length === 0,
       '被拒绝的页面不能留下文件')
   } finally {
     rmSync(cwd, { recursive: true, force: true })
@@ -71,7 +71,7 @@ test('文本安全：emoji ZWJ 序列只警告且内容一字不差', async () =
     assert.match(res.content, /警告|不可见/, '应给出零宽字符警告')
     const id = /id=([A-Za-z0-9_-]+)/.exec(res.content)?.[1]
     assert.ok(id, res.content)
-    const saved = readFileSync(join(cwd, '.tianshu-canvas', 'pages', id + '.html'), 'utf8')
+    const saved = readFileSync(join(cwd, '.dsh-canvas', 'pages', id + '.html'), 'utf8')
     assert.ok(saved.includes(family), '零宽连接符必须原样保留，不能被剥离')
   } finally {
     rmSync(cwd, { recursive: true, force: true })

@@ -22,12 +22,12 @@ const storage = await import(pathToFileURL(join(apiDir, 'api.mjs')).href)
 after(async () => { await plugin.dispose?.(); rmSync(apiDir, { recursive: true, force: true }) })
 
 function node(id) {
-  return { id, type: 'page', title: id, x: 0, y: 0, width: 1440, height: 900, deviceType: 'desktop', htmlPath: `.tianshu-canvas/pages/${id}.html`, htmlRev: 1, createdAt: 1, updatedAt: 1 }
+  return { id, type: 'page', title: id, x: 0, y: 0, width: 1440, height: 900, deviceType: 'desktop', htmlPath: `.dsh-canvas/pages/${id}.html`, htmlRev: 1, createdAt: 1, updatedAt: 1 }
 }
 
 function fixture(count = 0) {
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-capacity-'))
-  const dir = join(cwd, '.tianshu-canvas')
+  const dir = join(cwd, '.dsh-canvas')
   const pages = join(dir, 'pages')
   mkdirSync(pages, { recursive: true })
   const nodes = Array.from({ length: count }, (_, index) => node(`page-${index}`))
@@ -40,7 +40,7 @@ function fixture(count = 0) {
 const project = ws => JSON.parse(readFileSync(ws.file, 'utf8'))
 const page = (ws, id) => readFileSync(join(ws.pages, `${id}.html`), 'utf8')
 const call = (ws, name, input) => tools[name].execute({ input, cwd: ws.cwd })
-const upsert = (ws, input) => call(ws, 'canvas_upsert_page', input)
+const upsert = (ws, input) => call(ws, 'dsh_canvas_upsert_page', input)
 function snapshot(ws) {
   return Object.fromEntries([['project.json', createHash('sha256').update(readFileSync(ws.file)).digest('hex')], ...readdirSync(ws.pages).sort().map(name => [name, createHash('sha256').update(readFileSync(join(ws.pages, name))).digest('hex')])])
 }
@@ -98,16 +98,16 @@ test('中文多字节按UTF-8判限，html_path与内联写入口一致', async 
 test('设计注入后再检查最终字节，换肤批次超限不留下部分改写', async () => {
   const ws = fixture(2)
   try {
-    assert.ok(!(await call(ws, 'canvas_style', { action: 'set', style_id: 'claude' })).isError)
+    assert.ok(!(await call(ws, 'dsh_canvas_style', { action: 'set', style_id: 'claude' })).isError)
     const before = snapshot(ws)
     const source = sizedHtml(MAX_HTML_BYTES - 32)
     const rejected = await upsert(ws, { id: 'page-0', html: source })
     assert.equal(rejected.isError, true, 'design tokens/components must count toward final bytes')
     assert.deepEqual(snapshot(ws), before)
-    assert.ok(!(await call(ws, 'canvas_style', { action: 'set', style_id: 'free' })).isError)
+    assert.ok(!(await call(ws, 'dsh_canvas_style', { action: 'set', style_id: 'free' })).isError)
     writeFileSync(join(ws.pages, 'page-1.html'), sizedHtml(MAX_HTML_BYTES))
     const beforeBatch = snapshot(ws)
-    const batch = await call(ws, 'canvas_style', { action: 'set', style_id: 'apple' })
+    const batch = await call(ws, 'dsh_canvas_style', { action: 'set', style_id: 'apple' })
     assert.equal(batch.isError, true)
     assert.deepEqual(snapshot(ws), beforeBatch, 'a later failing page must not leave an earlier page restyled')
   } finally { ws.cleanup() }
@@ -119,12 +119,12 @@ test('创建覆盖自定义风格和品牌包导入因注入超限失败时，li
   const tokens = JSON.parse(readFileSync(join(root, 'design-systems/styles/apple/tokens.json'), 'utf8'))
   const custom = { id: 'rollback-existing', tokens, name: '容量事务风格', tagline: '测试', description: '合成验收夹具', tags: ['test'], swatches: ['#ffffff', '#1d1d1f'], iconStyle: { strokeWidth: 1.6 }, set_current: false }
   try {
-    assert.ok(!(await call(ws, 'canvas_design_system', { action: 'create', ...custom })).isError)
-    assert.ok(!(await call(source, 'canvas_design_system', { action: 'create', ...custom, id: 'rollback-imported', set_current: true })).isError)
-    const usage = await call(source, 'canvas_style', { action: 'codegen', target: 'react', html: '<main><button class="ts-btn ts-btn--primary">save</button></main>' })
+    assert.ok(!(await call(ws, 'dsh_canvas_design_system', { action: 'create', ...custom })).isError)
+    assert.ok(!(await call(source, 'dsh_canvas_design_system', { action: 'create', ...custom, id: 'rollback-imported', set_current: true })).isError)
+    const usage = await call(source, 'dsh_canvas_style', { action: 'codegen', target: 'react', html: '<main><button class="ts-btn ts-btn--primary">save</button></main>' })
     assert.ok(!usage.isError, usage.content)
     assert.ok(existsSync(join(source.dir, 'memory/brand.json')), 'pack fixture must contain actual brand memory')
-    const exported = await call(source, 'canvas_design_system', { action: 'export', id: 'rollback-imported', out_dir: 'packs' })
+    const exported = await call(source, 'dsh_canvas_design_system', { action: 'export', id: 'rollback-imported', out_dir: 'packs' })
     assert.ok(!exported.isError, exported.content)
     const pack = join(ws.cwd, 'incoming-pack.json')
     writeFileSync(pack, readFileSync(join(source.cwd, 'packs/rollback-imported.json')))
@@ -137,7 +137,7 @@ test('创建覆盖自定义风格和品牌包导入因注入超限失败时，li
       { action: 'create', ...custom, overwrite: true, name: 'must not replace metadata', set_current: true },
       { action: 'import_pack', pack_path: 'incoming-pack.json' },
     ]) {
-      const result = await call(ws, 'canvas_design_system', input)
+      const result = await call(ws, 'dsh_canvas_design_system', input)
       assert.equal(result.isError, true, result.content)
       assert.match(result.content, /8\s*MiB|8388608/i)
       assert.deepEqual(directorySnapshot(ws.dir), before)
@@ -176,8 +176,8 @@ test('999页允许创建第1000页，创建与复制不能绕过上限，拒绝�
     assert.equal(readdirSync(ws.pages).length, MAX_PAGE_COUNT)
     const before = snapshot(ws)
     for (const [name, input] of [
-      ['canvas_upsert_page', { id: 'page-too-many', html: '<p>denied</p>' }],
-      ['canvas_arrange', { action: 'duplicate', id: 'page-0' }],
+      ['dsh_canvas_upsert_page', { id: 'page-too-many', html: '<p>denied</p>' }],
+      ['dsh_canvas_arrange', { action: 'duplicate', id: 'page-0' }],
     ]) {
       const rejected = await call(ws, name, input)
       assert.equal(rejected.isError, true, rejected.content)
@@ -212,7 +212,7 @@ test('旧超限HTML在未满页数项目中也不能经复制绕过，原页元�
     const oversized = sizedHtml(MAX_HTML_BYTES + 1)
     writeFileSync(join(ws.pages, 'page-0.html'), oversized)
     const before = snapshot(ws)
-    const duplicate = await call(ws, 'canvas_arrange', { action: 'duplicate', id: 'page-0' })
+    const duplicate = await call(ws, 'dsh_canvas_arrange', { action: 'duplicate', id: 'page-0' })
     assert.equal(duplicate.isError, true)
     assert.deepEqual(snapshot(ws), before)
     const rewrite = await upsert(ws, { id: 'page-0', html: oversized })
@@ -229,7 +229,7 @@ test('旧1001页/超限HTML仍可读取、元数据更新和删除，重写内�
   try {
     const oversized = sizedHtml(MAX_HTML_BYTES + 1)
     writeFileSync(join(ws.pages, 'page-0.html'), oversized)
-    const listed = await call(ws, 'canvas_get_state', {})
+    const listed = await call(ws, 'dsh_canvas_get_state', {})
     assert.ok(!listed.isError, listed.content)
     assert.match(listed.content, /1001/)
     const renamed = await upsert(ws, { id: 'page-0', title: 'legacy title', x: 15 })
@@ -237,13 +237,13 @@ test('旧1001页/超限HTML仍可读取、元数据更新和删除，重写内�
     assert.equal(page(ws, 'page-0'), oversized)
     assert.equal(project(ws).nodes.length, MAX_PAGE_COUNT + 1)
     const before = snapshot(ws)
-    const copied = await call(ws, 'canvas_arrange', { action: 'duplicate', id: 'page-0' })
+    const copied = await call(ws, 'dsh_canvas_arrange', { action: 'duplicate', id: 'page-0' })
     assert.equal(copied.isError, true)
     assert.deepEqual(snapshot(ws), before)
     const rewritten = await upsert(ws, { id: 'page-0', html: '<p>reduced content</p>' })
     assert.ok(!rewritten.isError, rewritten.content)
     assert.equal(page(ws, 'page-0'), '<p>reduced content</p>')
-    const removed = await call(ws, 'canvas_arrange', { action: 'remove', id: 'page-1000' })
+    const removed = await call(ws, 'dsh_canvas_arrange', { action: 'remove', id: 'page-1000' })
     assert.ok(!removed.isError, removed.content)
     assert.equal(project(ws).nodes.length, MAX_PAGE_COUNT)
     assert.equal(existsSync(join(ws.pages, 'page-1000.html')), false)
@@ -253,12 +253,12 @@ test('旧1001页/超限HTML仍可读取、元数据更新和删除，重写内�
 test('HTTP复制同样返回容量错误，锁争用返回409且正常工具恢复', async () => {
   const ws = fixture(MAX_PAGE_COUNT)
   try {
-    const opened = await call(ws, 'canvas_open', { port: 0 })
+    const opened = await call(ws, 'dsh_canvas_open', { port: 0 })
     assert.ok(!opened.isError, opened.content)
     const url = new URL(opened.content.match(/http:\/\/127\.0\.0\.1:\d+\/w\/[0-9a-f]{32}\/\?ws=[0-9a-f]{32}#[0-9a-f]{64}/)[0])
     const token = url.searchParams.get('ws')
     const endpoint = `${url.origin}/api/nodes`
-    const post = body => rawFetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1', Authorization: `Bearer ${testCredential(token)}` }, body: JSON.stringify({ ws: token, ...body }) })
+    const post = body => rawFetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1', Authorization: `Bearer ${testCredential(token)}` }, body: JSON.stringify({ ws: token, ...body }) })
     const before = snapshot(ws)
     const duplicate = await post({ op: 'duplicate', id: 'page-0' })
     assert.equal(duplicate.status, 400)
@@ -285,9 +285,9 @@ test('同族写入口全部遵守工作区锁，争用不改简报、批注、�
   const custom = { id: 'capacity-lock-style', tokens, name: '锁测试风格', tagline: '测试', description: '本地合成夹具', tags: ['test'], swatches: ['#ffffff', '#1d1d1f'], iconStyle: { strokeWidth: 1.6 }, set_current: false }
   const tree = directorySnapshot
   try {
-    const created = await call(ws, 'canvas_design_system', { ...custom, action: 'create' })
+    const created = await call(ws, 'dsh_canvas_design_system', { ...custom, action: 'create' })
     assert.ok(!created.isError, created.content)
-    const opened = await call(ws, 'canvas_open', { port: 0 })
+    const opened = await call(ws, 'dsh_canvas_open', { port: 0 })
     assert.ok(!opened.isError, opened.content)
     const url = new URL(opened.content.match(/http:\/\/127\.0\.0\.1:\d+\/w\/[0-9a-f]{32}\/\?ws=[0-9a-f]{32}#[0-9a-f]{64}/)[0])
     const token = url.searchParams.get('ws')
@@ -295,17 +295,17 @@ test('同族写入口全部遵守工作区锁，争用不改简报、批注、�
     const before = tree(ws.dir)
     writeFileSync(lock, '{another-holder}')
     for (const [name, input] of [
-      ['canvas_upsert_page', { id: 'page-0', html: '<p>changed</p>' }],
-      ['canvas_arrange', { action: 'link', source: 'page-0', target: 'page-1' }],
-      ['canvas_arrange', { action: 'unlink', source: 'page-0', target: 'page-1' }],
-      ['canvas_arrange', { action: 'remove', id: 'page-0' }],
-      ['canvas_comments', { action: 'resolve', ids: ['cmt-none'] }],
-      ['canvas_comments', { action: 'remove', ids: ['cmt-none'] }],
-      ['canvas_style', { action: 'brief', page_id: 'page-0', brief: { purpose: 'must not save' } }],
-      ['canvas_style', { action: 'set', style_id: 'apple' }],
-      ['canvas_design_system', { ...custom, action: 'create', id: 'new-locked-style' }],
-      ['canvas_design_system', { ...custom, action: 'create', overwrite: true }],
-      ['canvas_design_system', { action: 'remove', id: custom.id }],
+      ['dsh_canvas_upsert_page', { id: 'page-0', html: '<p>changed</p>' }],
+      ['dsh_canvas_arrange', { action: 'link', source: 'page-0', target: 'page-1' }],
+      ['dsh_canvas_arrange', { action: 'unlink', source: 'page-0', target: 'page-1' }],
+      ['dsh_canvas_arrange', { action: 'remove', id: 'page-0' }],
+      ['dsh_canvas_comments', { action: 'resolve', ids: ['cmt-none'] }],
+      ['dsh_canvas_comments', { action: 'remove', ids: ['cmt-none'] }],
+      ['dsh_canvas_style', { action: 'brief', page_id: 'page-0', brief: { purpose: 'must not save' } }],
+      ['dsh_canvas_style', { action: 'set', style_id: 'apple' }],
+      ['dsh_canvas_design_system', { ...custom, action: 'create', id: 'new-locked-style' }],
+      ['dsh_canvas_design_system', { ...custom, action: 'create', overwrite: true }],
+      ['dsh_canvas_design_system', { action: 'remove', id: custom.id }],
     ]) {
       const result = await call(ws, name, input)
       assert.equal(result.isError, true, `${name} ${input.action}: ${result.content}`)
@@ -319,7 +319,7 @@ test('同族写入口全部遵守工作区锁，争用不改简报、批注、�
       ['/api/nodes', { op: 'move', id: 'page-0', x: 5, y: 8 }],
       ['/api/edges', { op: 'add', source: 'page-0', target: 'page-1' }],
     ]) {
-      const result = await rawFetch(url.origin + route, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Tianshu-Canvas': '1', Authorization: `Bearer ${testCredential(token)}` }, body: JSON.stringify({ ws: token, ...body }) })
+      const result = await rawFetch(url.origin + route, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-DSH-Canvas': '1', Authorization: `Bearer ${testCredential(token)}` }, body: JSON.stringify({ ws: token, ...body }) })
       assert.equal(result.status, 409, route + ': ' + await result.text())
       assert.deepEqual(tree(ws.dir), before)
     }

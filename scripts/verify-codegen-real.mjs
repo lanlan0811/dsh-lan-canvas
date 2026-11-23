@@ -49,7 +49,7 @@ function splitFiles(content) {
 }
 
 const { api } = await loadPlugin(pathToFileURL(join(root, 'dist', 'index.mjs')).href)
-const styleTool = api.tools.find((t) => t.name === 'canvas_style')
+const styleTool = api.tools.find((t) => t.name === 'dsh_canvas_style')
 const cwd = mkdtempSync(join(tmpdir(), 'tsc-real-'))
 await styleTool.execute({ args: { action: 'set', style_id: 'apple' }, cwd, sessionId: 'real' })
 

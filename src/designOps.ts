@@ -2,7 +2,7 @@
  * 项目级设计风格操作：锁定、切换、解绑。
  *
  * 切换语义：只替换「可用的 token 与组件实现」，不会把页面里的裸 hex 改写成 var()。
- * 遵守技能写的页面自动换肤；自由发挥时期写的裸值保持不变，由 canvas_check_style 指出。
+ * 遵守技能写的页面自动换肤；自由发挥时期写的裸值保持不变，由 dsh_canvas_check_style 指出。
  * 解绑（free）不剥离旧样式块，避免页面突然失去样式；新页面不再注入。
  */
 import { InvalidInputError } from './ids.js'
@@ -36,7 +36,7 @@ export function currentStyleId(cwd: string, tx?: ProjectTransaction): string | n
 export function applyProjectStyle(cwd: string, styleId: string | null, tx?: ProjectTransaction, preparedStyle?: ResolvedStyle): StyleChangeResult {
   if (!tx) return withProjectTransaction(cwd, (transaction) => applyProjectStyle(cwd, styleId, transaction, preparedStyle))
   if (styleId !== null && !preparedStyle && !designStyleExists(cwd, styleId)) {
-    throw new InvalidInputError(`未知的设计风格：${styleId}。可用 canvas_style（action=list）查看可选风格。`)
+    throw new InvalidInputError(`未知的设计风格：${styleId}。可用 dsh_canvas_style（action=list）查看可选风格。`)
   }
   // 与 setViewport 同策略：项目文件损坏时不做破坏性写入。
   if (projectIssue(cwd, tx)) {
@@ -82,7 +82,7 @@ export function applyProjectStyle(cwd: string, styleId: string | null, tx?: Proj
   }
 }
 
-/** 取一份模板，组装成可直接交给 canvas_upsert_page 的完整 HTML。 */
+/** 取一份模板，组装成可直接交给 dsh_canvas_upsert_page 的完整 HTML。 */
 export function templateDocument(cwd: string, styleId: string, templateId: string): { html: string; device: string; name: string } | null {
   const style = resolveDesignStyle(cwd, styleId)
   if (!style) return null
@@ -96,7 +96,7 @@ export function templateDocument(cwd: string, styleId: string, templateId: strin
   return { html, device: template.device, name: template.name }
 }
 
-/** 取一个交互模式的骨架与用法说明（供 canvas_style action=interaction）。 */
+/** 取一个交互模式的骨架与用法说明（供 dsh_canvas_style action=interaction）。 */
 export function interactionDocument(cwd: string, styleId: string, interactionId: string): {
   name: string
   category: string

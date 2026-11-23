@@ -4,7 +4,7 @@
  * 复用 export.ts 的启动链路（spawn + DevToolsActivePort + puppeteer.connect）与串行队列，
  * 避免并发争抢浏览器；等待策略不用固定 sleep，而是字体 + iframe 双就绪。
  *
- * 基线目录可指定（baseline_dir），默认落在 .tianshu-canvas/audit/baseline —— 该目录被
+ * 基线目录可指定（baseline_dir），默认落在 .dsh-canvas/audit/baseline —— 该目录被
  * gitignore 忽略，团队若要共享基线，需把 baseline_dir 指到仓库内可提交的位置。
  */
 
@@ -40,7 +40,7 @@ export interface VisualResult {
   missing: string[]
 }
 
-/** 基线目录：默认 .tianshu-canvas/audit/baseline。 */
+/** 基线目录：默认 .dsh-canvas/audit/baseline。 */
 export function defaultBaselineDir(cwd: string): string {
   return join(projectDir(cwd), 'audit', 'baseline')
 }

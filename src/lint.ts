@@ -203,7 +203,7 @@ export function lintHtml(html: string, styleId: string | null, cwd?: string): Li
   if (!hasRuntimeInjection(html)) {
     const used = usedInteractions(masked, interactionClassSet, [...style.interactions.rootAttrs, ...(style.interactions.bindings ?? []).map(b => b.rootAttr)])
     if (used.length) {
-      add('interaction', 0, `用到交互（${used.slice(0, 6).join('、')}${used.length > 6 ? ' 等' : ''}）但缺少交互运行时；请用 canvas_upsert_page 重新写入以自动注入`)
+      add('interaction', 0, `用到交互（${used.slice(0, 6).join('、')}${used.length > 6 ? ' 等' : ''}）但缺少交互运行时；请用 dsh_canvas_upsert_page 重新写入以自动注入`)
     }
   }
 

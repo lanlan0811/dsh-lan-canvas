@@ -1,6 +1,6 @@
 /**
- * TPI SDK 入口（随插件分发）。只在天枢宿主内可用：宿主加载插件前安装全局 SDK，
- * 宿主之外 import 本插件会直接抛错——TPI 插件不能脱离天枢运行。
+ * TPI SDK 入口（随插件分发）。只在DSH 宿主内可用：宿主加载插件前安装全局 SDK，
+ * 宿主之外 import 本插件会直接抛错——TPI 插件不能脱离DSH运行。
  *
  * 逐字照抄自 .claude/reversed-src/plugin-template/tpi.js，不要修改。
  * 宿主在 import 入口前会调用 installTpiGlobalSdk()，

@@ -30,12 +30,12 @@ const puppeteer = (await import('puppeteer-core')).default
 const cwd = mkdtempSync(join(tmpdir(), 'tsc-web-'))
 let browser
 try {
-  const open = await tools.canvas_open.execute({ args: { port: 0 }, cwd, sessionId: 's' })
+  const open = await tools.dsh_canvas_open.execute({ args: { port: 0 }, cwd, sessionId: 's' })
   const m = open.content.match(/http:\/\/127\.0\.0\.1:\d+\/w\/[0-9a-f]{32}\/\?ws=[0-9a-f]{32}#[0-9a-f]{64}/)
   if (!m) throw new Error('未返回合法 URL: ' + open.content)
   const url = m[0]
   // 先锁定一套风格，验证顶栏切换器与注入链路
-  const styled = await tools.canvas_style.execute({ args: { action: 'set', style_id: 'claude' }, cwd, sessionId: 's' })
+  const styled = await tools.dsh_canvas_style.execute({ args: { action: 'set', style_id: 'claude' }, cwd, sessionId: 's' })
   if (styled.isError) throw new Error('锁定设计风格失败: ' + styled.content)
 
   // 自定义设计系统：创建后应出现在切换器，且注入 :root 与 .dark 两块
@@ -50,7 +50,7 @@ try {
   Object.assign(dark.border, { default: 'neutral.700', strong: 'neutral.500', subtle: 'neutral.900' })
   Object.assign(dark.action, { primary: 'brand.300', primaryText: 'neutral.900', secondary: 'neutral.700', secondaryText: 'neutral.0' })
   tokens.color.semanticDark = dark
-  const created = await tools.canvas_design_system.execute({
+  const created = await tools.dsh_canvas_design_system.execute({
     args: {
       action: 'create',
       id: 'verifybrand',
@@ -67,7 +67,7 @@ try {
   })
   if (created.isError) throw new Error('创建自定义设计系统失败: ' + created.content)
 
-  await tools.canvas_upsert_page.execute({
+  await tools.dsh_canvas_upsert_page.execute({
     args: { html: '<h1 id="probe">HELLO_CANVAS</h1>', title: 'Probe' },
     cwd,
     sessionId: 's',
@@ -123,7 +123,7 @@ try {
   }
   // 注入产物：页面里应有 :root 与 .dark 两块（自定义风格的浅/深色）
   const { readFileSync, readdirSync } = await import('node:fs')
-  const pagesDir = join(cwd, '.tianshu-canvas', 'pages')
+  const pagesDir = join(cwd, '.dsh-canvas', 'pages')
   const injected = readdirSync(pagesDir).map((f) => readFileSync(join(pagesDir, f), 'utf8')).join('\n')
   checks['注入 :root 块'] = injected.includes(':root {')
   checks['注入 .dark 块'] = injected.includes('.dark {')

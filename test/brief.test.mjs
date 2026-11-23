@@ -15,16 +15,16 @@ const html = '<!doctype html><html><body><main><h1>Original content</h1></main><
 
 function workspace() {
   const cwd = mkdtempSync(join(tmpdir(), 'tsc-brief-'))
-  const dir = join(cwd, '.tianshu-canvas')
+  const dir = join(cwd, '.dsh-canvas')
   mkdirSync(join(dir, 'pages'), { recursive: true })
-  const node = { id: pageId, type: 'page', title: 'Intent', x: 0, y: 0, width: 1440, height: 900, deviceType: 'desktop', htmlPath: `.tianshu-canvas/pages/${pageId}.html`, createdAt: 1, updatedAt: 1 }
+  const node = { id: pageId, type: 'page', title: 'Intent', x: 0, y: 0, width: 1440, height: 900, deviceType: 'desktop', htmlPath: `.dsh-canvas/pages/${pageId}.html`, createdAt: 1, updatedAt: 1 }
   writeFileSync(join(dir, 'project.json'), JSON.stringify({ version: 1, viewport: { x: 0, y: 0, zoom: 1 }, nodes: [node], edges: [] }) + '\n')
   writeFileSync(join(dir, 'pages', `${pageId}.html`), html)
   return { cwd, file: join(dir, 'project.json'), cleanup: () => rmSync(cwd, { recursive: true, force: true }) }
 }
 
-const read = (cwd) => JSON.parse(readFileSync(join(cwd, '.tianshu-canvas/project.json'), 'utf8'))
-const brief = (cwd, data, id = pageId) => tools.canvas_style.execute({ input: { action: 'brief', page_id: id, ...(data === undefined ? {} : { brief: data }) }, cwd })
+const read = (cwd) => JSON.parse(readFileSync(join(cwd, '.dsh-canvas/project.json'), 'utf8'))
+const brief = (cwd, data, id = pageId) => tools.dsh_canvas_style.execute({ input: { action: 'brief', page_id: id, ...(data === undefined ? {} : { brief: data }) }, cwd })
 async function okay(cwd, data, id) {
   const result = await brief(cwd, data, id)
   assert.ok(!result.isError, result.content)
@@ -38,7 +38,7 @@ test('旧项目读取无简报：不迁移、不改写项目或页面', async ()
     await okay(ws.cwd)
     assert.equal(readFileSync(ws.file, 'utf8'), before)
     assert.equal(read(ws.cwd).pageBriefs, undefined)
-    assert.equal(readFileSync(join(ws.cwd, '.tianshu-canvas/pages', `${pageId}.html`), 'utf8'), html)
+    assert.equal(readFileSync(join(ws.cwd, '.dsh-canvas/pages', `${pageId}.html`), 'utf8'), html)
   } finally { ws.cleanup() }
 })
 
@@ -61,7 +61,7 @@ test('内容简报往返保存与部分更新，草稿方向不等于用户认�
     assert.equal(changed.audience, '独立创作者')
     assert.deepEqual(changed.evidence, [])
     assert.equal(changed.confirmedDirection, undefined)
-    assert.equal(readFileSync(join(ws.cwd, '.tianshu-canvas/pages', `${pageId}.html`), 'utf8'), html)
+    assert.equal(readFileSync(join(ws.cwd, '.dsh-canvas/pages', `${pageId}.html`), 'utf8'), html)
   } finally { ws.cleanup() }
 })
 
@@ -75,7 +75,7 @@ test('只有显式确认才创建决定；读写与原位深化保留原确认�
     await okay(ws.cwd)
     await okay(ws.cwd, { proposition: '深化内容不重选方向', directionId: 'editorial-narrative' })
     assert.deepEqual(read(ws.cwd).pageBriefs[pageId].confirmedDirection, confirmed)
-    const update = await tools.canvas_upsert_page.execute({ input: { id: pageId, html: '<h1>Expanded page</h1>' }, cwd: ws.cwd })
+    const update = await tools.dsh_canvas_upsert_page.execute({ input: { id: pageId, html: '<h1>Expanded page</h1>' }, cwd: ws.cwd })
     assert.ok(!update.isError, update.content)
     assert.deepEqual(read(ws.cwd).pageBriefs[pageId].confirmedDirection, confirmed)
     await okay(ws.cwd, { directionId: 'brand-poster' })
@@ -121,7 +121,7 @@ test('缺失/非法页面拒绝，不创建隐式页面和简报', async () => {
       assert.equal((await brief(ws.cwd, { purpose: 'x' }, id)).isError, true)
       assert.equal((await brief(ws.cwd, undefined, id)).isError, true)
     }
-    const missing = await tools.canvas_style.execute({ input: { action: 'brief', brief: { purpose: 'x' } }, cwd: ws.cwd })
+    const missing = await tools.dsh_canvas_style.execute({ input: { action: 'brief', brief: { purpose: 'x' } }, cwd: ws.cwd })
     assert.equal(missing.isError, true)
     assert.equal(readFileSync(ws.file, 'utf8'), before)
   } finally { ws.cleanup() }
@@ -132,18 +132,18 @@ test('复制保留原决定且互相独立，删除清理自身简报，最后�
   try {
     await okay(ws.cwd, { audience: '原页面', evidence: ['proof'], confirmation: { confirmed: true, directionId: 'product-evidence', reason: '用户选择产品演示' } })
     const original = read(ws.cwd).pageBriefs[pageId]
-    const copied = await tools.canvas_arrange.execute({ input: { action: 'duplicate', id: pageId }, cwd: ws.cwd })
+    const copied = await tools.dsh_canvas_arrange.execute({ input: { action: 'duplicate', id: pageId }, cwd: ws.cwd })
     assert.ok(!copied.isError, copied.content)
     const copyId = read(ws.cwd).nodes.find((node) => node.id !== pageId).id
     assert.deepEqual(read(ws.cwd).pageBriefs[copyId], original)
     await okay(ws.cwd, { audience: '副本', evidence: ['different'] }, copyId)
     assert.deepEqual(read(ws.cwd).pageBriefs[pageId], original)
     assert.equal(read(ws.cwd).pageBriefs[copyId].confirmedDirection.confirmedAt, original.confirmedDirection.confirmedAt)
-    const removed = await tools.canvas_arrange.execute({ input: { action: 'remove', id: pageId }, cwd: ws.cwd })
+    const removed = await tools.dsh_canvas_arrange.execute({ input: { action: 'remove', id: pageId }, cwd: ws.cwd })
     assert.ok(!removed.isError, removed.content)
     assert.equal(Object.hasOwn(read(ws.cwd).pageBriefs, pageId), false)
     assert.ok(read(ws.cwd).pageBriefs[copyId])
-    const removedCopy = await tools.canvas_arrange.execute({ input: { action: 'remove', id: copyId }, cwd: ws.cwd })
+    const removedCopy = await tools.dsh_canvas_arrange.execute({ input: { action: 'remove', id: copyId }, cwd: ws.cwd })
     assert.ok(!removedCopy.isError, removedCopy.content)
     assert.equal(read(ws.cwd).pageBriefs, undefined)
   } finally { ws.cleanup() }
@@ -193,11 +193,11 @@ test('项目目录 junction 越界：拒绝读写且外部简报字节不变', a
   const outside = workspace()
   try {
     const outsideBytes = readFileSync(outside.file, 'utf8')
-    rmSync(join(ws.cwd, '.tianshu-canvas'), { recursive: true, force: true })
-    symlinkSync(join(outside.cwd, '.tianshu-canvas'), join(ws.cwd, '.tianshu-canvas'), 'junction')
+    rmSync(join(ws.cwd, '.dsh-canvas'), { recursive: true, force: true })
+    symlinkSync(join(outside.cwd, '.dsh-canvas'), join(ws.cwd, '.dsh-canvas'), 'junction')
     assert.equal((await brief(ws.cwd)).isError, true)
     assert.equal((await brief(ws.cwd, { audience: '不得泄露或覆盖' })).isError, true)
     assert.equal(readFileSync(outside.file, 'utf8'), outsideBytes)
-    assert.deepEqual(readdirSync(join(outside.cwd, '.tianshu-canvas')).sort(), ['pages', 'project.json'])
+    assert.deepEqual(readdirSync(join(outside.cwd, '.dsh-canvas')).sort(), ['pages', 'project.json'])
   } finally { ws.cleanup(); outside.cleanup() }
 })
