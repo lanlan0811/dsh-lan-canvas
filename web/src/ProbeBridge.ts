@@ -31,6 +31,10 @@ export interface ProbeHandlers {
   ) => void
   /** 页面内点击了链接：请求画布跳转到对应页面节点。 */
   onNavigate?: (pageId: string, nav: { href: string | null; nav: string | null; xpath: string }) => void
+  /** 页面内点击了外链：画布只提示，不打开。 */
+  onNavBlocked?: (pageId: string, payload: { href: string }) => void
+  /** iframe 被错误导航到不存在的页面：画布需要恢复原页面。 */
+  onPageMissing?: (pageId: string) => void
 }
 
 /** pageId ↔ iframe contentWindow 双向映射。 */
@@ -100,6 +104,14 @@ export function useProbeBridge(handlers: ProbeHandlers): void {
           if (p) h.onNavigate?.(pageId, { href: p.href ?? null, nav: p.nav ?? null, xpath: p.xpath ?? '' })
           break
         }
+        case '__vd_proto_nav_blocked': {
+          const p = data.payload as { href?: unknown } | null
+          if (p && typeof p.href === 'string') h.onNavBlocked?.(pageId, { href: p.href })
+          break
+        }
+        case '__vd_page_missing':
+          h.onPageMissing?.(pageId)
+          break
         default:
           break
       }

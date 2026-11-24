@@ -25,6 +25,18 @@ export interface ApiEdge {
   label?: string
 }
 
+/** GET /api/project 的派生字段：页面内可解析跳转，不写入 project.json。 */
+export interface ApiNavLink {
+  source: string
+  target: string
+}
+
+export interface ApiLayoutPosition {
+  id: string
+  x: number
+  y: number
+}
+
 export interface ApiComment {
   id: string
   pageId: string
@@ -46,6 +58,8 @@ export interface ApiProject {
   design?: { styleId: string; updatedAt: number }
   /** 元素批注；缺省表示没有。 */
   comments?: ApiComment[]
+  /** 页面跳转派生连线；缺省表示旧服务或没有可解析链接。 */
+  navLinks?: ApiNavLink[]
   /** 项目文件有问题时的提示。 */
   issue?: string
 }
@@ -238,6 +252,18 @@ export async function postEdge(
   target: string,
 ): Promise<void> {
   await mutate('edges', { ws, op, source, target })
+}
+
+/** 服务端原子重排所有页面，返回新坐标。 */
+export async function postLayout(ws: string): Promise<ApiLayoutPosition[]> {
+  const res = await mutate('nodes', { ws, op: 'layout' })
+  const body = (await res.json()) as { positions?: unknown }
+  if (!Array.isArray(body.positions)) return []
+  return body.positions.filter((item): item is ApiLayoutPosition => {
+    if (!item || typeof item !== 'object') return false
+    const value = item as Record<string, unknown>
+    return typeof value.id === 'string' && typeof value.x === 'number' && typeof value.y === 'number'
+  })
 }
 
 export interface ExportResult {

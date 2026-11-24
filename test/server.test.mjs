@@ -41,6 +41,7 @@ try {
   const apiProject = `${base}/api/project?ws=${ws}`
   const before = await (await fetch(apiProject)).json()
   assert.equal(before.nodes.length, 0)
+  assert.deepEqual(before.navLinks, [], '空项目应返回空的派生跳转连线')
 
   // 添加一页
   const add = await tools.dsh_canvas_upsert_page.execute({ input: { html: '<h1>P</h1>', title: 'P' }, cwd })
@@ -58,6 +59,23 @@ try {
   const pageHtml = await pageRes.text()
   assert.match(pageHtml, /<h1>P<\/h1>/)
   assert.match(pageHtml, /data-tianshu-probe/, '原型页应注入探针')
+
+  // 缺失页面/脚本相对跳转丢掉 ws 时：返回不含工作区信息的友好 404 HTML。
+  const scopeRootForMissing = parsed.pathname.replace(/\/$/, '')
+  for (const [label, missingUrl] of [
+    ['with-ws', `${base}${scopeRootForMissing}/page/no-such-page?ws=${ws}`],
+    ['without-ws', `${base}${scopeRootForMissing}/page/no-such-page`],
+  ]) {
+    const missingRes = await fetch(missingUrl)
+    assert.equal(missingRes.status, 404, `${label} 缺失页应 404`)
+    assert.match(missingRes.headers.get('content-type') ?? '', /text\/html/)
+    assert.match(missingRes.headers.get('content-security-policy') ?? '', /script-src 'unsafe-inline'/)
+    const missingBody = await missingRes.text()
+    assert.match(missingBody, /data-dsh-canvas-missing-page/, `${label} 应是友好 404 页`)
+    assert.match(missingBody, /__vd_page_missing/, `${label} 应通知父画布恢复`)
+    assert.doesNotMatch(missingBody, new RegExp(token), `${label} 正文不得泄露凭证`)
+    assert.doesNotMatch(missingBody, /unknown workspace/, `${label} 不应显示内部错误`)
+  }
 
   // Issue #7 修的是链接拦截，不能用放宽 workspace 鉴权掩盖 iframe 导航错误。
   // rawFetch 绕过测试宿主自动注入的 Bearer，覆盖编辑态和预览态的真实拒绝路径。

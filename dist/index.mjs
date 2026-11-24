@@ -61919,6 +61919,45 @@ function setViewport(cwd, viewport, tx) {
   writeProjectAtomic(cwd, project, false, tx);
   return project;
 }
+var LAYOUT_GAP_X = 120;
+var LAYOUT_GAP_Y = 140;
+function layoutNodes(cwd, tx) {
+  if (!tx) return withProjectTransaction(cwd, (current) => layoutNodes(cwd, current));
+  const project = readProject(cwd, tx);
+  if (project.nodes.length === 0) return { project, moved: 0 };
+  const nodes = [...project.nodes].sort((a2, b2) => a2.y - b2.y || a2.x - b2.x || a2.id.localeCompare(b2.id));
+  const count = nodes.length;
+  const cols = Math.min(4, Math.max(1, Math.ceil(Math.sqrt(count))));
+  const rows = Math.ceil(count / cols);
+  const size = (value) => Number.isFinite(value) && value > 0 ? Math.round(value) : 1;
+  const widths = new Array(cols).fill(0);
+  const heights = new Array(rows).fill(0);
+  for (let index = 0; index < count; index++) {
+    const node = nodes[index];
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+    widths[col] = Math.max(widths[col], size(node.width));
+    heights[row] = Math.max(heights[row], size(node.height));
+  }
+  const xs = new Array(cols).fill(0);
+  for (let col = 1; col < cols; col++) xs[col] = xs[col - 1] + widths[col - 1] + LAYOUT_GAP_X;
+  const ys = new Array(rows).fill(0);
+  for (let row = 1; row < rows; row++) ys[row] = ys[row - 1] + heights[row - 1] + LAYOUT_GAP_Y;
+  const now2 = Date.now();
+  let moved = 0;
+  for (let index = 0; index < count; index++) {
+    const node = nodes[index];
+    const x2 = xs[index % cols];
+    const y = ys[Math.floor(index / cols)];
+    if (node.x === x2 && node.y === y) continue;
+    node.x = x2;
+    node.y = y;
+    node.updatedAt = now2;
+    moved++;
+  }
+  if (moved > 0) writeProjectAtomic(cwd, project, true, tx);
+  return { project, moved };
+}
 function removeNode(cwd, id, tx) {
   assertSafeId(id);
   if (!tx) return withProjectTransaction(cwd, (current) => removeNode(cwd, id, current));
@@ -65865,8 +65904,9 @@ function buildProbeScript(preview) {
     "  var KNOWN = {",
     "    __vd_ping: 1, __vd_proto_state: 1, __vd_set_scope: 1,",
     "    __vd_request_add_to_chat: 1, __vd_request_select_xpath: 1,",
-    "    __vd_set_comments: 1",
+    "    __vd_set_comments: 1, __vd_highlight_interactives: 1",
     "  };",
+    '  var INTERACTIVE_SELECTOR = "a[href],a[data-nav],button,summary,label,input,select,textarea,[contenteditable=true],[role=button],[role=tab],[role=option],[role=menuitem],[role=menuitemradio],[role=link],[role=switch],[role=checkbox],[role=radio],[onclick],[data-ts-tabs],[data-ts-tab],[data-ts-open],[data-ts-close],[data-ts-toggle],[data-ts-copy-btn],[data-ts-mobile-nav],[data-ts-toc],[data-ts-modal]";',
     "  var STYLE_KEYS = [",
     "    'color','background-color','background-image','font-family','font-size','font-weight',",
     "    'font-style','line-height','letter-spacing','text-align','text-decoration',",
@@ -65991,19 +66031,22 @@ function buildProbeScript(preview) {
     "  }",
     "",
     "  // \u9AD8\u4EAE\u5728 iframe \u5185\u505A\uFF08\u7236\u4FA7\u65E0\u6CD5\u8BBF\u95EE\u5176 DOM\uFF09\uFF1B\u53EA\u5B58\u5728\u4E8E\u8FD0\u884C\u65F6\uFF0C\u4E0D\u4F1A\u5199\u56DE\u539F\u578B\u3002",
-    "  var hovered = null, selectedEl = null;",
+    "  var hovered = null, hoverClickable = null, selectedEl = null;",
     "  function ensureStyle(){",
     '    if (document.querySelector("style[' + PROBE_MARKER + ']")) return;',
     '    var s = document.createElement("style");',
     '    s.setAttribute("' + PROBE_MARKER + '", "1");',
-    '    s.textContent = "[data-tianshu-hover]{outline:2px solid #e07a3f;outline-offset:-1px}[data-tianshu-selected]{outline:2px solid #b85a24;outline-offset:-1px;box-shadow:0 0 0 2px rgba(224,122,63,.25)}";',
+    '    s.textContent = "[data-tianshu-hover]{outline:2px dashed #e07a3f;outline-offset:-1px}[data-tianshu-selected]{outline:2px solid #b85a24;outline-offset:-1px;box-shadow:0 0 0 2px rgba(224,122,63,.25)}[data-tianshu-clickable]{outline:2px solid #b85a24 !important;outline-offset:2px;cursor:pointer !important}[data-tianshu-interactive]{outline:2px dashed #b85a24 !important;outline-offset:2px;box-shadow:0 0 0 3px rgba(184,90,36,.16) !important}";',
     "    (document.head || document.documentElement).appendChild(s);",
     "  }",
-    "  function setHover(el){",
-    "    if (hovered === el) return;",
+    "  function setHover(el, clickable){",
+    "    if (hovered === el && hoverClickable === clickable) return;",
     '    if (hovered) hovered.removeAttribute("data-tianshu-hover");',
+    '    if (hoverClickable) hoverClickable.removeAttribute("data-tianshu-clickable");',
     "    hovered = el;",
+    "    hoverClickable = clickable;",
     '    if (hovered) hovered.setAttribute("data-tianshu-hover", "1");',
+    '    if (hoverClickable) hoverClickable.setAttribute("data-tianshu-clickable", "1");',
     "  }",
     "  function setSelected(el){",
     '    if (selectedEl) selectedEl.removeAttribute("data-tianshu-selected");',
@@ -66072,6 +66115,13 @@ function buildProbeScript(preview) {
     "      }",
     "      // \u7EAF # \u951A\u70B9\uFF1A\u4E0D\u62E6\u622A\uFF0C\u8BA9\u9875\u5185\u6EDA\u52A8\u751F\u6548\u3002",
     "    }",
+    "    // \u5916\u94FE\u5728\u753B\u5E03\u5185\u4E0D\u6253\u5F00\uFF1A\u63D0\u793A\u7236\u9875\u9762\uFF0C\u907F\u514D\u7528\u6237\u4EE5\u4E3A\u70B9\u51FB\u65E0\u6548\u3002",
+    "    if (!multi && anchor && !navRef) {",
+    '      var blockedHref = anchor.getAttribute("href") || "";',
+    '      if (blockedHref && !anchor.getAttribute("data-nav") && isExternal(blockedHref)) {',
+    '        post("__vd_proto_nav_blocked", { href: blockedHref.slice(0, 300) });',
+    "      }",
+    "    }",
     "    if (!multi) scopeXpath = getXPath(el);",
     "    setSelected(el);",
     '    post("__vd_proto_element_selected", payload(el));',
@@ -66090,6 +66140,92 @@ function buildProbeScript(preview) {
     "  function isExternal(href){",
     "    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href)) return true;",
     '    return href.indexOf("//") === 0;',
+    "  }",
+    "",
+    "  // \u53EF\u4EA4\u4E92\u8BC6\u522B\uFF1A\u8BED\u4E49\u5143\u7D20\u4F18\u5148\uFF1B\u6CA1\u6709\u8BED\u4E49\u65F6\u53D6\u6700\u5916\u5C42 cursor:pointer \u533A\u57DF\u3002",
+    "  function isSemanticInteractive(el){",
+    "    if (!el || el.nodeType !== 1) return false;",
+    '    var tag = el.tagName ? el.tagName.toLowerCase() : "";',
+    '    if (tag === "html" || tag === "body" || tag === "script" || tag === "style" || tag === "link" || tag === "meta") return false;',
+    "    try { if (el.matches && el.matches(INTERACTIVE_SELECTOR)) return true; } catch (e) {}",
+    '    var role = el.getAttribute ? el.getAttribute("role") : null;',
+    "    if (role && /^(?:button|tab|option|menuitem|menuitemradio|link|switch|checkbox|radio)$/.test(role)) return true;",
+    "    return false;",
+    "  }",
+    "  function pointerHost(el){",
+    "    var node = el, last = null;",
+    "    while (node && node.nodeType === 1) {",
+    "      if (node !== document.body && node !== document.documentElement) {",
+    "        var pointer = false;",
+    '        try { pointer = getComputedStyle(node).cursor === "pointer"; } catch (e) {}',
+    "        if (pointer) last = node;",
+    "      }",
+    "      node = node.parentElement;",
+    "    }",
+    "    return last;",
+    "  }",
+    "  function nearestInteractive(el){",
+    "    var node = el;",
+    "    while (node && node.nodeType === 1) {",
+    "      if (isSemanticInteractive(node)) return node;",
+    "      node = node.parentElement;",
+    "    }",
+    "    return pointerHost(el);",
+    "  }",
+    "  function isVisible(el){",
+    "    if (!el || el.nodeType !== 1) return false;",
+    "    try { if (!el.getClientRects().length) return false; } catch (e) { return false; }",
+    "    try {",
+    "      var cs = getComputedStyle(el);",
+    '      return cs.visibility !== "hidden" && cs.display !== "none" && cs.opacity !== "0";',
+    "    } catch (e) { return true; }",
+    "  }",
+    "  function collectInteractives(){",
+    "    var result = [];",
+    "    function add(el){",
+    "      if (!el || el === document.body || el === document.documentElement) return;",
+    "      if (result.indexOf(el) >= 0 || !isVisible(el)) return;",
+    "      var parent = el.parentElement;",
+    "      while (parent && parent !== document.body) {",
+    "        if (result.indexOf(parent) >= 0) return;",
+    "        parent = parent.parentElement;",
+    "      }",
+    "      if (result.length < 80) result.push(el);",
+    "    }",
+    "    var semantic = document.body.querySelectorAll(INTERACTIVE_SELECTOR);",
+    "    for (var i = 0; i < semantic.length && result.length < 80; i++) add(semantic[i]);",
+    '    var all = document.body.querySelectorAll("*");',
+    "    var limit = Math.min(all.length, 3000);",
+    "    for (var j = 0; j < limit && result.length < 80; j++) {",
+    "      var el = all[j];",
+    "      if (isSemanticInteractive(el)) continue;",
+    "      var cs;",
+    "      try { cs = getComputedStyle(el); } catch (e) { continue; }",
+    '      if (cs.cursor !== "pointer") continue;',
+    "      var parentPointer = false;",
+    "      if (el.parentElement) {",
+    '        try { parentPointer = getComputedStyle(el.parentElement).cursor === "pointer"; } catch (e) {}',
+    "      }",
+    "      if (!parentPointer) add(el);",
+    "    }",
+    "    return result;",
+    "  }",
+    "  var interactiveTimer = 0;",
+    "  function clearInteractives(){",
+    '    var list = document.querySelectorAll("[data-tianshu-interactive]");',
+    '    for (var i = 0; i < list.length; i++) list[i].removeAttribute("data-tianshu-interactive");',
+    "  }",
+    "  function highlightInteractives(){",
+    "    if (interactiveTimer) { clearTimeout(interactiveTimer); interactiveTimer = 0; }",
+    "    clearInteractives();",
+    "    if (!document.body) return;",
+    "    var list = collectInteractives();",
+    '    for (var i = 0; i < list.length; i++) list[i].setAttribute("data-tianshu-interactive", "1");',
+    "    ensureStyle();",
+    "    interactiveTimer = setTimeout(function(){",
+    "      interactiveTimer = 0;",
+    "      clearInteractives();",
+    "    }, 2400);",
     "  }",
     "",
     "  // \u9884\u89C8\u6001\uFF1A\u4E0D\u505A\u5143\u7D20\u9009\u4E2D\uFF0C\u53EA\u62E6\u300C\u4F1A\u79BB\u5F00\u5F53\u524D\u9884\u89C8\u9875\u300D\u7684\u5BFC\u822A\u3002",
@@ -66117,12 +66253,14 @@ function buildProbeScript(preview) {
     "      hoverRaf = 0;",
     "      ensureStyle();",
     '      var el = resolveAtPoint(e.clientX, e.clientY, "descend");',
-    "      setHover(el);",
+    "      var target = e.target && e.target.nodeType === 1 ? e.target : null;",
+    "      var clickable = target ? nearestInteractive(target) : null;",
+    "      setHover(el, clickable);",
     '      post("__vd_proto_hover_changed", el ? payload(el) : null);',
     "    });",
     "  }, true);",
     "",
-    '  document.addEventListener("mouseleave", function(){ if (PREVIEW) return; setHover(null); post("__vd_proto_hover_changed", null); }, true);',
+    '  document.addEventListener("mouseleave", function(){ if (PREVIEW) return; setHover(null, null); post("__vd_proto_hover_changed", null); }, true);',
     "",
     '  window.addEventListener("wheel", function(e){',
     "    if (PREVIEW) return;",
@@ -66146,6 +66284,10 @@ function buildProbeScript(preview) {
     '    if (d.type === "__vd_set_comments") {',
     "      if (PREVIEW) return;",
     "      pinComments = Array.isArray(p.comments) ? p.comments : []; renderPins(); return;",
+    "    }",
+    '    if (d.type === "__vd_highlight_interactives") {',
+    "      if (!PREVIEW) highlightInteractives();",
+    "      return;",
     "    }",
     '    if (d.type === "__vd_request_select_xpath") {',
     '      var el = byXPath(p.xpath); if (el) post("__vd_proto_element_selected", payload(el)); return;',
@@ -66185,6 +66327,70 @@ ${safe}
   if (idx >= 0) return html.slice(0, idx) + tag + html.slice(idx);
   const at = afterDoctype(html);
   return html.slice(0, at) + tag + html.slice(at);
+}
+
+// src/navGraph.ts
+var workspaces2 = /* @__PURE__ */ new Map();
+var MAX_READ_BYTES = 32 * 1024 * 1024;
+var MAX_LINKS = 500;
+function workspaceKey2(cwd) {
+  const path14 = String(cwd);
+  return process.platform === "win32" ? path14.toLowerCase() : path14;
+}
+function pageVersion(node) {
+  return typeof node.htmlRev === "number" && node.htmlRev > 0 ? node.htmlRev : node.updatedAt;
+}
+function clearNavGraphCache(cwd) {
+  if (cwd === void 0) workspaces2.clear();
+  else workspaces2.delete(workspaceKey2(cwd));
+}
+function readNavLinks(cwd, project) {
+  const key = workspaceKey2(cwd);
+  let graph = workspaces2.get(key);
+  if (!graph) {
+    graph = { pages: /* @__PURE__ */ new Map() };
+    workspaces2.set(key, graph);
+  }
+  const index = createNavIndex(project.nodes);
+  const links = [];
+  const seen = /* @__PURE__ */ new Set();
+  let readBytes = 0;
+  for (const node of project.nodes) {
+    if (links.length >= MAX_LINKS) break;
+    const version = pageVersion(node);
+    let entry = graph.pages.get(node.id);
+    if (!entry || entry.version !== version) {
+      let html;
+      try {
+        html = readPageHtml(cwd, node.id);
+      } catch {
+        continue;
+      }
+      if (html === null) {
+        graph.pages.set(node.id, { version, anchors: [] });
+        continue;
+      }
+      readBytes += Buffer.byteLength(html, "utf8");
+      if (readBytes > MAX_READ_BYTES) break;
+      const anchors = mayHaveNavLinks(html) ? parseNavDocument(html).anchors : [];
+      entry = { version, anchors };
+      graph.pages.set(node.id, entry);
+    }
+    for (const anchor of entry.anchors) {
+      const target = resolveNavRef(anchor.ref, index).target;
+      if (!target || target === node.id) continue;
+      const pair = `${node.id}\0${target}`;
+      if (seen.has(pair)) continue;
+      seen.add(pair);
+      links.push({ source: node.id, target });
+      if (links.length >= MAX_LINKS) break;
+    }
+  }
+  const live = new Set(project.nodes.map((node) => node.id));
+  for (const id of graph.pages.keys()) {
+    if (!live.has(id)) graph.pages.delete(id);
+  }
+  return links;
 }
 
 // src/server.ts
@@ -66282,6 +66488,7 @@ function currentUrl(cwd) {
 }
 async function shutdownCanvasServer() {
   clearNavigationCache();
+  clearNavGraphCache();
   if (stopping) return stopping;
   if (starting) await starting;
   if (!state) return;
@@ -66369,8 +66576,15 @@ function routeRequest(req, res) {
   if (req.method === "GET" && path14 === "/api/project") {
     const cwd = resolveCwd(url.searchParams.get("ws"), req);
     if (!cwd) return send(res, 404, "application/json; charset=utf-8", JSON.stringify({ error: "unknown workspace" }));
+    const project = readProject(cwd);
     const issue = projectIssue(cwd);
-    return sendJson(res, { ...readProject(cwd), ...issue ? { issue } : {} });
+    let navLinks = [];
+    try {
+      navLinks = readNavLinks(cwd, project);
+    } catch {
+      navLinks = [];
+    }
+    return sendJson(res, { ...project, navLinks, ...issue ? { issue } : {} });
   }
   if (req.method === "GET" && path14 === "/api/events") {
     const cwd = resolveCwd(url.searchParams.get("ws"), req);
@@ -66378,8 +66592,12 @@ function routeRequest(req, res) {
     return handleSse(res, tokenFor(cwd));
   }
   if (req.method === "GET" && path14.startsWith("/page/")) {
-    const cwd = resolveCwd(url.searchParams.get("ws"), req, { allowQuerySecret: true });
-    if (!cwd) return send(res, 404, "text/plain; charset=utf-8", "unknown workspace");
+    const queryWorkspace2 = url.searchParams.get("ws");
+    const cwd = resolveCwd(queryWorkspace2, req, { allowQuerySecret: true });
+    if (!cwd) {
+      if (queryWorkspace2 === null) return sendMissingPage(res);
+      return send(res, 404, "text/plain; charset=utf-8", "unknown workspace");
+    }
     let id;
     try {
       id = decodeURIComponent(path14.slice("/page/".length));
@@ -66388,7 +66606,7 @@ function routeRequest(req, res) {
       throw err;
     }
     const html = readPageHtml(cwd, id);
-    if (html === null) return send(res, 404, "text/plain; charset=utf-8", "page not found");
+    if (html === null) return sendMissingPage(res);
     return sendUntrustedHtml(res, injectProbe(html, { preview: url.searchParams.get("preview") === "1" }));
   }
   if (req.method === "GET" && path14 === "/api/selection") {
@@ -66584,6 +66802,14 @@ function handleNodes(req, res) {
       moveNode(cwd, id, Number(body.x) || 0, Number(body.y) || 0);
       return sendJson(res, { ok: true, id });
     }
+    if (op === "layout") {
+      const { project, moved } = layoutNodes(cwd);
+      return sendJson(res, {
+        ok: true,
+        moved,
+        positions: project.nodes.map((node) => ({ id: node.id, x: node.x, y: node.y }))
+      });
+    }
     if (op === "duplicate") {
       if (!id) throw new InvalidInputError("missing id");
       const { node, warnings } = withProjectTransaction(cwd, (tx) => {
@@ -66714,6 +66940,64 @@ function serveStatic(res, name, type = "text/html; charset=utf-8") {
   }
   res.writeHead(200, headers);
   res.end(readFileSync7(file));
+}
+var MISSING_PAGE_HTML = `<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>\u8DF3\u8F6C\u76EE\u6807\u4E0D\u5B58\u5728</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { display: grid; place-items: center; padding: 24px; background: #faf7f0; color: #2b2b2b; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+  main { width: min(520px, 100%); padding: 24px 26px; background: #fffdf8; border: 1.5px solid #2b2b2b; border-radius: 16px 6px 15px 7px / 7px 16px 6px 15px; box-shadow: 2px 3px 0 rgba(43,43,43,.1), 0 6px 18px rgba(43,43,43,.06); }
+  h1 { margin: 0 0 8px; font-size: 20px; }
+  p { margin: 6px 0; color: #6b6152; line-height: 1.55; font-size: 13px; }
+  .mark { display: inline-block; margin-bottom: 10px; font-size: 11px; color: #b85a24; }
+</style>
+</head>
+<body data-dsh-canvas-missing-page="1">
+<main>
+  <span class="mark">dsh-lan-canvas</span>
+  <h1>\u8DF3\u8F6C\u76EE\u6807\u4E0D\u5B58\u5728</h1>
+  <p>\u94FE\u63A5\u6307\u5411\u7684\u9875\u9762\u6CA1\u6709\u627E\u5230\uFF0C\u6B63\u5728\u8FD4\u56DE\u539F\u9875\u9762\u2026</p>
+  <p id="dsh-canvas-missing-note">\u5982\u679C\u9875\u9762\u6CA1\u6709\u81EA\u52A8\u8FD4\u56DE\uFF0C\u8BF7\u5237\u65B0\u753B\u5E03\u3002</p>
+</main>
+<script>
+(function () {
+  var stopped = false;
+  function notify() {
+    try { parent.postMessage({ type: "__vd_page_missing" }, "*"); } catch (error) {}
+  }
+  notify();
+  var count = 0;
+  var timer = setInterval(function () {
+    if (stopped) return;
+    notify();
+    if (++count < 8) return;
+    stopped = true;
+    clearInterval(timer);
+  }, 250);
+  window.addEventListener("pagehide", function () {
+    stopped = true;
+    clearInterval(timer);
+  });
+})();
+</script>
+</body>
+</html>
+`;
+function sendMissingPage(res) {
+  res.writeHead(404, {
+    "Content-Type": "text/html; charset=utf-8",
+    "X-Content-Type-Options": "nosniff",
+    "Cache-Control": "no-store",
+    "Referrer-Policy": "no-referrer",
+    "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"
+  });
+  res.end(MISSING_PAGE_HTML);
 }
 function sendUntrustedHtml(res, html) {
   res.writeHead(200, {
@@ -71136,6 +71420,7 @@ export {
   apply,
   assertUrlAllowed,
   backfillNavigation,
+  clearNavGraphCache,
   clearNavigationCache,
   createNavIndex,
   extractTokens,
@@ -71147,6 +71432,7 @@ export {
   parseNavDocument,
   parseNavRef,
   parseSkillDocument,
+  readNavLinks,
   resolveBrowser,
   resolveNavRef,
   rewriteNavLinks,

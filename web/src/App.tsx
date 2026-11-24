@@ -25,6 +25,7 @@ import { PageListSidebar } from './PageListSidebar'
 import { ZoomControls } from './ZoomControls'
 import { ContextMenu, type ContextMenuState } from './ContextMenu'
 import { InkEdge } from './edges/InkEdge'
+import { NavEdge } from './edges/NavEdge'
 import { SelectionPanel } from './SelectionPanel'
 import { CanvasActionsProvider, type CanvasActions } from './actions'
 import { postToPage, useProbeBridge } from './ProbeBridge'
@@ -36,6 +37,7 @@ import {
   fetchSelection,
   postCommentOp,
   postEdge,
+  postLayout,
   postNodeOp,
   postSelection,
   postViewport,
@@ -57,10 +59,16 @@ const exporting = params.get('export') === '1'
 /** 审计截图：只渲染指定页面（与 export=1 配合）。 */
 const pageFilter = params.get('page') ?? ''
 
-const edgeTypes = { ink: InkEdge }
+const edgeTypes = { ink: InkEdge, nav: NavEdge }
 const defaultEdgeOptions = {
   type: 'ink',
   markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color: '#2b2b2b' },
+}
+
+/** iframe 传来的链接文本不可信；只做纯文本展示，限制长度并去掉控制符。 */
+function shortRef(value: string): string {
+  const clean = value.replace(/[\u0000-\u001f\u007f]/g, '').trim()
+  return clean.length > 120 ? `${clean.slice(0, 117)}...` : clean
 }
 
 /** .page-node 上下边框之和：节点高度要多出这一点，iframe 视口才等于内容高度。 */
@@ -71,10 +79,10 @@ function toFlowNodes(
   contentHeights: Map<string, number>,
   previous: PageFlowNode[],
   commentCounts: Map<string, number>,
+  visibleIds: Set<string>,
 ): PageFlowNode[] {
   const byId = new Map(previous.map((n) => [n.id, n]))
-  const nodes = pageFilter ? project.nodes.filter((n) => n.id === pageFilter) : project.nodes
-  return nodes.map((n) => {
+  return project.nodes.filter((n) => visibleIds.has(n.id)).map((n) => {
     const prev = byId.get(n.id)
     return {
       // 项目刷新只更新服务端数据；选中、置顶、尺寸测量等客户端状态要保留。
@@ -93,6 +101,7 @@ function toFlowNodes(
         contentHeight: contentHeights.get(n.id),
         elementSelected: prev?.data.elementSelected,
         commentCount: commentCounts.get(n.id) ?? 0,
+        reloadToken: prev?.data.reloadToken,
       },
     }
   })
@@ -110,8 +119,30 @@ function restorableViewport(project: ApiProject): Viewport | null {
   return visible ? { x, y, zoom } : null
 }
 
-function toFlowEdges(project: ApiProject): Edge[] {
-  return project.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, label: e.label }))
+function toFlowEdges(project: ApiProject, visibleIds: Set<string>): Edge[] {
+  const manual = project.edges
+    .filter((e) => visibleIds.has(e.source) && visibleIds.has(e.target))
+    .map((e) => ({ id: e.id, source: e.source, target: e.target, label: e.label }))
+  const pairs = new Set(manual.map((e) => `${e.source}\u0000${e.target}`))
+  const derived: Edge[] = []
+  for (const link of project.navLinks ?? []) {
+    if (link.source === link.target) continue
+    if (!visibleIds.has(link.source) || !visibleIds.has(link.target)) continue
+    const pair = `${link.source}\u0000${link.target}`
+    if (pairs.has(pair)) continue
+    pairs.add(pair)
+    derived.push({
+      id: `nav:${link.source}:${link.target}`,
+      source: link.source,
+      target: link.target,
+      type: 'nav',
+      selectable: false,
+      deletable: false,
+      focusable: false,
+      markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: '#b85a24' },
+    })
+  }
+  return [...manual, ...derived]
 }
 
 function Canvas() {
@@ -131,6 +162,8 @@ function Canvas() {
   const [previewFreeSize, setPreviewFreeSize] = useState({ width: 800, height: 600 })
   const [catalog, setCatalog] = useState<ApiDesignCatalog | null>(null)
   const [design, setDesign] = useState<{ styleId: string; updatedAt: number } | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+  const [layoutBusy, setLayoutBusy] = useState(false)
   const nodesRef = useRef<PageFlowNode[]>([])
   nodesRef.current = nodes
   const commentsRef = useRef<ApiComment[]>([])
@@ -138,8 +171,46 @@ function Canvas() {
   // 高度只在页面加载时上报一次，项目刷新重建节点时不能丢。
   const contentHeights = useRef(new Map<string, number>())
   const relaunchReported = useRef(false)
+  const toastTimer = useRef<number | null>(null)
+  // 页面被脚本导航到不存在地址后的恢复限流：10 秒内最多 3 次，防止死循环。
+  const restoreMisses = useRef(new Map<string, { count: number; at: number }>())
 
   const { setViewport, getViewport, fitView } = useReactFlow()
+
+  const showToast = useCallback((message: string) => {
+    setToast(message)
+    if (toastTimer.current !== null) window.clearTimeout(toastTimer.current)
+    toastTimer.current = window.setTimeout(() => {
+      toastTimer.current = null
+      setToast(null)
+    }, 4000)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current !== null) window.clearTimeout(toastTimer.current)
+    }
+  }, [])
+
+  /** 页面 iframe 被脚本导航到 404 后，重建 iframe 回到原页面。 */
+  const restorePage = useCallback((pageId: string) => {
+    const node = nodesRef.current.find((n) => n.id === pageId)
+    if (!node) return
+    const now = Date.now()
+    const previous = restoreMisses.current.get(pageId)
+    // 友好 404 会连发几次消息；同一次错误只恢复一次。
+    if (previous && now - previous.at < 1500) return
+    const count = previous && now - previous.at < 10_000 ? previous.count + 1 : 1
+    restoreMisses.current.set(pageId, { count, at: now })
+    if (count > 3) {
+      showToast('页面反复跳转到不存在的地址，已停止自动返回；请检查页面脚本。')
+      return
+    }
+    setNodes((current) =>
+      current.map((n) => (n.id === pageId ? { ...n, data: { ...n.data, reloadToken: (n.data.reloadToken ?? 0) + 1 } } : n))
+    )
+    showToast(`跳转目标不存在，已返回「${node.data.title}」。`)
+  }, [setNodes, showToast])
 
   /** 把某页未解决的批注推给该页 iframe（探针按 xpath 画编号图钉）。 */
   function syncCommentsToPage(pageId: string, list: ApiComment[]): void {
@@ -156,9 +227,10 @@ function Canvas() {
       const list = project.comments ?? []
       const counts = new Map<string, number>()
       for (const c of list) if (!c.resolved) counts.set(c.pageId, (counts.get(c.pageId) ?? 0) + 1)
-      setNodes((prev) => toFlowNodes(project, contentHeights.current, prev, counts))
+      const visibleIds = new Set(pageFilter ? project.nodes.filter((n) => n.id === pageFilter).map((n) => n.id) : project.nodes.map((n) => n.id))
+      setNodes((prev) => toFlowNodes(project, contentHeights.current, prev, counts, visibleIds))
       setInitialViewport((current) => (current === undefined ? restorableViewport(project) : current))
-      setEdges(toFlowEdges(project))
+      setEdges(toFlowEdges(project, visibleIds))
       setDesign(project.design ?? null)
       setComments(list)
       setReady(true)
@@ -296,10 +368,22 @@ function Canvas() {
       // 程序设置视口时 onMove 没有事件对象，不会保存，这里补上。
       if (!exporting) void runMutation(() => postViewport(ws, next), true)
     },
-    onNavigate: (_pageId, nav) => {
+    onNavigate: (pageId, nav) => {
       const ids = new Set(nodesRef.current.map((n) => n.id))
       const target = resolveNavTarget(nav, ids)
-      if (target) selectAndFit(target)
+      if (target) {
+        selectAndFit(target)
+        return
+      }
+      const ref = shortRef(nav.nav ?? nav.href ?? '')
+      showToast(ref ? `跳转目标不存在或无法解析：${ref}。已标出本页可点击元素。` : '跳转目标不存在。已标出本页可点击元素。')
+      postToPage(pageId, '__vd_highlight_interactives')
+    },
+    onNavBlocked: (_pageId, payload) => {
+      showToast(`外部链接不会在画布内打开：${shortRef(payload.href)}`)
+    },
+    onPageMissing: (pageId) => {
+      restorePage(pageId)
     },
   })
 
@@ -388,8 +472,37 @@ function Canvas() {
     }
   }, [])
 
+  const doLayout = useCallback(async () => {
+    if (layoutBusy || nodesRef.current.length === 0) return
+    setLayoutBusy(true)
+    try {
+      const positions = await postLayout(ws)
+      const byId = new Map(positions.map((position) => [position.id, position]))
+      setNodes((current) =>
+        current.map((node) => {
+          const position = byId.get(node.id)
+          return position ? { ...node, position: { x: position.x, y: position.y } } : node
+        }),
+      )
+      // 等 React Flow 接收新坐标后再 fit，避免用旧节点尺寸计算视口。
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+      await fitView({ padding: 0.2, maxZoom: 1, duration: 400 })
+    } catch (err) {
+      setMutationError(err instanceof ApiRequestError ? err.message : '自动排布失败，请检查画布服务后重试。')
+      await loadProject()
+    } finally {
+      setLayoutBusy(false)
+    }
+  }, [fitView, layoutBusy, loadProject, setNodes])
+
+  const openPreviewAll = useCallback(() => {
+    const selected = selection?.pageId && nodesRef.current.some((n) => n.id === selection.pageId) ? selection.pageId : nodesRef.current[0]?.id
+    if (selected) setPreview({ pageId: selected })
+  }, [selection])
+
   // 画布编排动作（供节点工具栏调用）
   const actions: CanvasActions = {
+    preview: (id) => setPreview({ pageId: id }),
     rename: (id, title) => {
       void runMutation(() => postNodeOp(ws, 'rename', { id, title }))
     },
@@ -495,11 +608,19 @@ function Canvas() {
           <TopBar
             sidebarOpen={sidebarOpen}
             onToggleSidebar={() => setSidebarOpen((v) => !v)}
+            onLayout={() => void doLayout()}
+            onPreview={openPreviewAll}
+            canLayout={nodes.length > 0}
+            canPreview={nodes.length > 0}
+            layoutBusy={layoutBusy}
             onExport={doExport}
             busy={exportingNow}
             catalog={catalog}
             design={design}
           />
+        )}
+        {!exporting && toast && (
+          <div className="app-toast" role="status" aria-live="polite">{toast}</div>
         )}
         {!exporting && sidebarOpen && (
           <PageListSidebar
@@ -510,7 +631,7 @@ function Canvas() {
         )}
         {!exporting && <ZoomControls />}
         {!exporting && !showIdle && (
-          <div className="hint">空格/中键拖拽 平移 · Ctrl+滚轮 缩放 · 滚轮 平移 · 点击选中元素（Ctrl 点击选最内层） · 点页面内链接跳到对应页</div>
+          <div className="hint">空格/中键拖拽 平移 · Ctrl+滚轮 缩放 · 点击选中元素（Ctrl 点击选最内层） · 悬停可点击元素有描边 · 顶部可自动排布/总预览</div>
         )}
         {!exporting && (
           <SelectionPanel

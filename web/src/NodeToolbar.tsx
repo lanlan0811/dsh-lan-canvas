@@ -1,18 +1,19 @@
 /**
- * 节点工具栏：选中节点时浮现在节点上方，提供重命名/复制/删除。
+ * 节点工具栏：选中节点时浮现在节点上方，提供预览/重命名/复制/删除。
  */
 import { useEffect, useRef, useState } from 'react'
-import { CopyIcon, EditIcon, TrashIcon } from './icons'
+import { CopyIcon, EditIcon, PlayIcon, TrashIcon } from './icons'
 import type { PageFlowNode } from './PageNode'
 
 export interface NodeToolbarProps {
   node: PageFlowNode
+  onPreview: (id: string) => void
   onRename: (id: string, title: string) => void
   onDuplicate: (id: string) => void
   onRemove: (id: string) => void
 }
 
-export function NodeToolbar({ node, onRename, onDuplicate, onRemove }: NodeToolbarProps) {
+export function NodeToolbar({ node, onPreview, onRename, onDuplicate, onRemove }: NodeToolbarProps) {
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(node.data.title)
   const renameButton = useRef<HTMLButtonElement>(null)
@@ -57,6 +58,9 @@ export function NodeToolbar({ node, onRename, onDuplicate, onRemove }: NodeToolb
         />
       ) : (
         <>
+          <button type="button" className="node-toolbar__btn" title="预览此页" aria-label="预览此页" onClick={() => onPreview(node.id)}>
+            <PlayIcon size={14} />
+          </button>
           <button type="button" className="node-toolbar__btn" title="重命名" aria-label="重命名" ref={renameButton} onClick={() => { committed.current = false; setTitle(node.data.title); setEditing(true) }}>
             <EditIcon size={14} />
           </button>

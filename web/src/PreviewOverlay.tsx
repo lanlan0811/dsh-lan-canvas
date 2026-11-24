@@ -75,6 +75,7 @@ export function PreviewOverlay({
   const [zoomOpen, setZoomOpen] = useState(false)
   const [zoomMode, setZoomMode] = useState<'fit' | number>(1)
   const [toast, setToast] = useState<string | null>(null)
+  const [reload, setReload] = useState(0)
   const [draft, setDraft] = useState({
     width: String(freeSize.width),
     height: String(freeSize.height),
@@ -88,6 +89,8 @@ export function PreviewOverlay({
   const pageMenuRef = useRef<HTMLDivElement>(null)
   const zoomRef = useRef<HTMLDivElement>(null)
   const toastTimer = useRef<number | null>(null)
+  const lastMissing = useRef(0)
+  const reloadMisses = useRef({ count: 0, at: 0 })
   const dragRef = useRef<{
     dir: ResizeDir
     startX: number
@@ -103,6 +106,13 @@ export function PreviewOverlay({
   useEffect(() => {
     if (!page) onClose()
   }, [page, onClose])
+
+  // 切换页面时重置错误导航的恢复限流。
+  useEffect(() => {
+    setReload(0)
+    lastMissing.current = 0
+    reloadMisses.current = { count: 0, at: 0 }
+  }, [pageId])
 
   // 舞台尺寸 → 自适应缩放。padding 会随设备切换（网页铺满、其余留白），
   // 因此按内容盒测量，并在设备变化时重新测量。
@@ -172,6 +182,20 @@ export function PreviewOverlay({
       }
       if (data.type === '__vd_preview_blocked') {
         showToast('外链不可在预览内打开')
+        return
+      }
+      if (data.type === '__vd_page_missing') {
+        const now = Date.now()
+        if (now - lastMissing.current < 1000) return
+        lastMissing.current = now
+        const count = now - reloadMisses.current.at < 10_000 ? reloadMisses.current.count + 1 : 1
+        reloadMisses.current = { count, at: now }
+        if (count > 3) {
+          showToast('页面反复跳转到不存在的地址，已停止自动返回；请检查页面脚本。')
+          return
+        }
+        showToast('跳转目标不存在，已返回当前页。')
+        setReload((value) => value + 1)
         return
       }
       if (data.type === '__vd_request_navigate') {
@@ -387,12 +411,13 @@ export function PreviewOverlay({
               }}
             >
               <iframe
-                key={`${page.id}:${page.data.rev ?? 0}`}
+                key={`${page.id}:${page.data.rev ?? 0}:${reload}`}
                 ref={iframeRef}
                 className="preview-device__iframe"
                 title={page.data.title}
                 src={pageUrl(ws, page.id, {
                   ...(page.data.rev ? { v: String(page.data.rev) } : {}),
+                  ...(reload ? { retry: String(reload) } : {}),
                   preview: '1',
                 })}
                 sandbox="allow-scripts"

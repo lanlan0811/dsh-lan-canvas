@@ -27,6 +27,12 @@ test('画布外壳：图标名称、可见焦点、导出键盘与重命名取�
     await page.goto(url, { waitUntil: 'domcontentloaded' })
     await page.waitForSelector('.page-node__header')
     assert.deepEqual(await page.$$eval('.zoom-controls__btn', buttons => buttons.map(button => button.getAttribute('aria-label'))), ['缩小', '放大', '适应视图'])
+    assert.deepEqual(
+      await page.$$eval('.topbar__tools .topbar__btn', buttons => buttons.map(button => button.getAttribute('aria-label'))),
+      ['切换页面列表', '适应视图', '自动排布页面', '预览全部页面'],
+    )
+    assert.equal(await page.$eval('.topbar__tools .topbar__btn[aria-label="自动排布页面"]', button => button.textContent.includes('自动排布')), true)
+    assert.equal(await page.$eval('.topbar__tools .topbar__btn[aria-label="预览全部页面"]', button => button.textContent.includes('预览')), true)
 
     // 使用真实 Tab，断言焦点不只存在于 DOM，而且能被看见。
     await page.keyboard.press('Tab')
@@ -57,7 +63,7 @@ test('画布外壳：图标名称、可见焦点、导出键盘与重命名取�
 
     await page.click('.page-node__header')
     await page.waitForSelector('.node-toolbar')
-    assert.deepEqual(await page.$$eval('.node-toolbar__btn', buttons => buttons.map(button => button.getAttribute('aria-label'))), ['重命名', '复制', '删除'])
+    assert.deepEqual(await page.$$eval('.node-toolbar__btn', buttons => buttons.map(button => button.getAttribute('aria-label'))), ['预览此页', '重命名', '复制', '删除'])
     await page.focus('.node-toolbar__btn[title=重命名]')
     await page.keyboard.press('Enter')
     await page.waitForSelector('input[aria-label=页面名称]')

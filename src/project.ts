@@ -595,6 +595,64 @@ export function nextLayoutIndex(cwd: string, tx?: ProjectTransaction): number {
   return readProject(cwd, tx).nodes.length
 }
 
+export interface LayoutResult {
+  project: Project
+  /** 实际移动的节点数；0 表示没有写盘。 */
+  moved: number
+}
+
+const LAYOUT_GAP_X = 120
+const LAYOUT_GAP_Y = 140
+
+/**
+ * 自动排布：按当前阅读顺序把页面重排成 1–4 列网格。
+ *
+ * 只改节点坐标与 updatedAt，保留 edges/comments/pageBriefs/design/viewport。
+ * 列宽取该列最大节点宽度、行高取该行最大高度，保证不同设备尺寸也不重叠。
+ * 幂等：第二次调用位置不变时 moved=0，不写盘、不广播。
+ */
+export function layoutNodes(cwd: string, tx?: ProjectTransaction): LayoutResult {
+  if (!tx) return withProjectTransaction(cwd, (current) => layoutNodes(cwd, current))
+  const project = readProject(cwd, tx)
+  if (project.nodes.length === 0) return { project, moved: 0 }
+
+  const nodes = [...project.nodes].sort((a, b) => a.y - b.y || a.x - b.x || a.id.localeCompare(b.id))
+  const count = nodes.length
+  const cols = Math.min(4, Math.max(1, Math.ceil(Math.sqrt(count))))
+  const rows = Math.ceil(count / cols)
+  const size = (value: number): number => (Number.isFinite(value) && value > 0 ? Math.round(value) : 1)
+
+  const widths: number[] = new Array<number>(cols).fill(0)
+  const heights: number[] = new Array<number>(rows).fill(0)
+  for (let index = 0; index < count; index++) {
+    const node = nodes[index]!
+    const col = index % cols
+    const row = Math.floor(index / cols)
+    widths[col] = Math.max(widths[col]!, size(node.width))
+    heights[row] = Math.max(heights[row]!, size(node.height))
+  }
+
+  const xs: number[] = new Array<number>(cols).fill(0)
+  for (let col = 1; col < cols; col++) xs[col] = xs[col - 1]! + widths[col - 1]! + LAYOUT_GAP_X
+  const ys: number[] = new Array<number>(rows).fill(0)
+  for (let row = 1; row < rows; row++) ys[row] = ys[row - 1]! + heights[row - 1]! + LAYOUT_GAP_Y
+
+  const now = Date.now()
+  let moved = 0
+  for (let index = 0; index < count; index++) {
+    const node = nodes[index]!
+    const x = xs[index % cols]!
+    const y = ys[Math.floor(index / cols)]!
+    if (node.x === x && node.y === y) continue
+    node.x = x
+    node.y = y
+    node.updatedAt = now
+    moved++
+  }
+  if (moved > 0) writeProjectAtomic(cwd, project, true, tx)
+  return { project, moved }
+}
+
 // ---------------------------------------------------------------------------
 // 节点 / 边 编排
 // ---------------------------------------------------------------------------

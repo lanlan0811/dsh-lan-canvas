@@ -8,6 +8,7 @@ export interface CanvasActions {
   rename: (id: string, title: string) => void
   duplicate: (id: string) => void
   remove: (id: string) => void
+  preview: (id: string) => void
 }
 
 const Ctx = createContext<CanvasActions | null>(null)

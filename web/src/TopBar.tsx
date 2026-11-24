@@ -4,7 +4,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { useReactFlow, useViewport } from '@xyflow/react'
-import { ChevronIcon, DownloadIcon, FitViewIcon, SidebarIcon } from './icons'
+import { ChevronIcon, DownloadIcon, FitViewIcon, LayoutIcon, PlayIcon, SidebarIcon } from './icons'
 import brandIcon from './brand-icon.png'
 import { StyleSwitcher } from './StyleSwitcher'
 import type { ApiDesignCatalog } from './api'
@@ -12,6 +12,11 @@ import type { ApiDesignCatalog } from './api'
 export interface TopBarProps {
   sidebarOpen: boolean
   onToggleSidebar: () => void
+  onLayout: () => void
+  onPreview: () => void
+  canLayout: boolean
+  canPreview: boolean
+  layoutBusy?: boolean
   onExport: (kind: 'png' | 'zip' | 'both') => void
   busy?: boolean
   catalog: ApiDesignCatalog | null
@@ -21,6 +26,11 @@ export interface TopBarProps {
 export function TopBar({
   sidebarOpen,
   onToggleSidebar,
+  onLayout,
+  onPreview,
+  canLayout,
+  canPreview,
+  layoutBusy,
   onExport,
   busy,
   catalog,
@@ -69,6 +79,7 @@ export function TopBar({
           type="button"
           className={`topbar__btn${sidebarOpen ? ' is-on' : ''}`}
           title="页面列表"
+          aria-label="切换页面列表"
           aria-pressed={sidebarOpen}
           onClick={onToggleSidebar}
         >
@@ -79,10 +90,34 @@ export function TopBar({
           type="button"
           className="topbar__btn"
           title="适应视图"
+          aria-label="适应视图"
           onClick={() => void fitView({ padding: 0.3, maxZoom: 1, duration: 400 })}
         >
           <FitViewIcon size={15} />
           <span>适应</span>
+        </button>
+        <button
+          type="button"
+          className="topbar__btn"
+          title="自动排布页面"
+          aria-label="自动排布页面"
+          onClick={onLayout}
+          disabled={!canLayout || layoutBusy}
+        >
+          <LayoutIcon size={15} />
+          <span>{layoutBusy ? '排布中…' : '自动排布'}</span>
+        </button>
+        <button
+          type="button"
+          className="topbar__btn"
+          title="预览全部页面（Esc 退出）"
+          aria-label="预览全部页面"
+          aria-haspopup="dialog"
+          onClick={onPreview}
+          disabled={!canPreview}
+        >
+          <PlayIcon size={15} />
+          <span>预览</span>
         </button>
       </div>
       <div className="topbar__spacer" />

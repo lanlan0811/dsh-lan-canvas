@@ -23,6 +23,7 @@ import { assertSafeId, InvalidInputError } from './ids.js'
 import { assertReadableFile, PathBoundaryError } from './paths.js'
 import { loadDesignCatalog } from './design.js'
 import { injectProbe } from './probe.js'
+import { clearNavGraphCache, readNavLinks, type NavLink } from './navGraph.js'
 import { formatPublicError, reportError, reportResultError } from './errors.js'
 import { exportsDir, runExport, type ExportKind } from './export.js'
 import {
@@ -40,6 +41,7 @@ import {
   removeNode,
   renameNode,
   duplicateNode,
+  layoutNodes,
   setCommentsResolved,
   setViewport,
   withProjectTransaction,
@@ -157,6 +159,7 @@ export function currentUrl(cwd: string): string | null {
 /** 关闭服务、断开事件流并撤销所有工作区授权。 */
 export async function shutdownCanvasServer(): Promise<void> {
   clearNavigationCache()
+  clearNavGraphCache()
   if (stopping) return stopping
   if (starting) await starting
   if (!state) return
@@ -265,8 +268,16 @@ function routeRequest(req: http.IncomingMessage, res: http.ServerResponse): void
   if (req.method === 'GET' && path === '/api/project') {
     const cwd = resolveCwd(url.searchParams.get('ws'), req)
     if (!cwd) return send(res, 404, 'application/json; charset=utf-8', JSON.stringify({ error: 'unknown workspace' }))
+    const project = readProject(cwd)
     const issue = projectIssue(cwd)
-    return sendJson(res, { ...readProject(cwd), ...(issue ? { issue } : {}) })
+    // 派生数据：页面间可解析跳转。读取失败不能拖垮项目接口。
+    let navLinks: NavLink[] = []
+    try {
+      navLinks = readNavLinks(cwd, project)
+    } catch {
+      navLinks = []
+    }
+    return sendJson(res, { ...project, navLinks, ...(issue ? { issue } : {}) })
   }
 
   if (req.method === 'GET' && path === '/api/events') {
@@ -276,8 +287,15 @@ function routeRequest(req: http.IncomingMessage, res: http.ServerResponse): void
   }
 
   if (req.method === 'GET' && path.startsWith('/page/')) {
-    const cwd = resolveCwd(url.searchParams.get('ws'), req, { allowQuerySecret: true })
-    if (!cwd) return send(res, 404, 'text/plain; charset=utf-8', 'unknown workspace')
+    const queryWorkspace = url.searchParams.get('ws')
+    const cwd = resolveCwd(queryWorkspace, req, { allowQuerySecret: true })
+    if (!cwd) {
+      // 页面内脚本执行 location.href='missing.html' 时，相对地址会丢掉 ?ws=...&secret=...
+      // 浏览器仍会请求本工作区的 /w/<scope>/page/*。这种情况不能读取任何页面数据，
+      // 但可以返回一个不含工作区信息的友好 404，让父画布把 iframe 恢复回原页面。
+      if (queryWorkspace === null) return sendMissingPage(res)
+      return send(res, 404, 'text/plain; charset=utf-8', 'unknown workspace')
+    }
     let id: string
     try {
       id = decodeURIComponent(path.slice('/page/'.length))
@@ -287,7 +305,7 @@ function routeRequest(req: http.IncomingMessage, res: http.ServerResponse): void
       throw err
     }
     const html = readPageHtml(cwd, id)
-    if (html === null) return send(res, 404, 'text/plain; charset=utf-8', 'page not found')
+    if (html === null) return sendMissingPage(res)
     // 注入探针：iframe 内做元素命中/选择/编辑（CSP 已允许内联脚本）。
     // preview=1 只切换探针行为（不选中/不转发滚轮），不新增任何数据入口。
     return sendUntrustedHtml(res, injectProbe(html, { preview: url.searchParams.get('preview') === '1' }))
@@ -518,6 +536,14 @@ function handleNodes(req: http.IncomingMessage, res: http.ServerResponse): void 
       moveNode(cwd, id, Number(body.x) || 0, Number(body.y) || 0)
       return sendJson(res, { ok: true, id })
     }
+    if (op === 'layout') {
+      const { project, moved } = layoutNodes(cwd)
+      return sendJson(res, {
+        ok: true,
+        moved,
+        positions: project.nodes.map((node) => ({ id: node.id, x: node.x, y: node.y })),
+      })
+    }
     if (op === 'duplicate') {
       if (!id) throw new InvalidInputError('missing id')
       const { node, warnings } = withProjectTransaction(cwd, (tx) => {
@@ -666,6 +692,71 @@ function serveStatic(res: http.ServerResponse, name: string, type = 'text/html; 
   }
   res.writeHead(200, headers)
   res.end(readFileSync(file))
+}
+
+/**
+ * 友好 404：脚本跳到不存在页面时，iframe 不会被纯文本错误页占据。
+ * 页面不含任何工作区信息/URL/凭证；只通知父画布恢复原页面。
+ */
+const MISSING_PAGE_HTML = `<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>跳转目标不存在</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { display: grid; place-items: center; padding: 24px; background: #faf7f0; color: #2b2b2b; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+  main { width: min(520px, 100%); padding: 24px 26px; background: #fffdf8; border: 1.5px solid #2b2b2b; border-radius: 16px 6px 15px 7px / 7px 16px 6px 15px; box-shadow: 2px 3px 0 rgba(43,43,43,.1), 0 6px 18px rgba(43,43,43,.06); }
+  h1 { margin: 0 0 8px; font-size: 20px; }
+  p { margin: 6px 0; color: #6b6152; line-height: 1.55; font-size: 13px; }
+  .mark { display: inline-block; margin-bottom: 10px; font-size: 11px; color: #b85a24; }
+</style>
+</head>
+<body data-dsh-canvas-missing-page="1">
+<main>
+  <span class="mark">dsh-lan-canvas</span>
+  <h1>跳转目标不存在</h1>
+  <p>链接指向的页面没有找到，正在返回原页面…</p>
+  <p id="dsh-canvas-missing-note">如果页面没有自动返回，请刷新画布。</p>
+</main>
+<script>
+(function () {
+  var stopped = false;
+  function notify() {
+    try { parent.postMessage({ type: "__vd_page_missing" }, "*"); } catch (error) {}
+  }
+  notify();
+  var count = 0;
+  var timer = setInterval(function () {
+    if (stopped) return;
+    notify();
+    if (++count < 8) return;
+    stopped = true;
+    clearInterval(timer);
+  }, 250);
+  window.addEventListener("pagehide", function () {
+    stopped = true;
+    clearInterval(timer);
+  });
+})();
+</script>
+</body>
+</html>
+`
+
+function sendMissingPage(res: http.ServerResponse): void {
+  res.writeHead(404, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'X-Content-Type-Options': 'nosniff',
+    'Cache-Control': 'no-store',
+    'Referrer-Policy': 'no-referrer',
+    'Content-Security-Policy':
+      "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'",
+  })
+  res.end(MISSING_PAGE_HTML)
 }
 
 function sendUntrustedHtml(res: http.ServerResponse, html: string): void {

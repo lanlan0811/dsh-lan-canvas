@@ -156,6 +156,17 @@ export function FitViewIcon(p: IconProps) {
   )
 }
 
+export function LayoutIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <rect x="3" y="3" width="7" height="7" rx="1.2" />
+      <rect x="14" y="3" width="7" height="7" rx="1.2" />
+      <rect x="3" y="14" width="7" height="7" rx="1.2" />
+      <rect x="14" y="14" width="7" height="7" rx="1.2" />
+    </Svg>
+  )
+}
+
 export function SidebarIcon(p: IconProps) {
   return (
     <Svg {...p}>

@@ -31,6 +31,8 @@ export interface PageNodeData extends Record<string, unknown> {
   elementSelected?: boolean
   /** 该页待处理（未解决）批注数，>0 时标题栏显示徽标。 */
   commentCount?: number
+  /** 页面 iframe 被错误导航后重建的次数；变化时强制 remount。 */
+  reloadToken?: number
 }
 
 export type PageFlowNode = Node<PageNodeData, 'page'>
@@ -61,6 +63,7 @@ export const PageNode = memo(function PageNode({ id, data, selected }: NodeProps
         >
           <NodeToolbar
             node={{ id, type: 'page', position: { x: 0, y: 0 }, data } as PageFlowNode}
+            onPreview={actions.preview}
             onRename={actions.rename}
             onDuplicate={actions.duplicate}
             onRemove={actions.remove}
@@ -86,10 +89,14 @@ export const PageNode = memo(function PageNode({ id, data, selected }: NodeProps
       </div>
       <div className="page-node__body">
         <iframe
+          key={`${id}:${data.rev ?? 0}:${data.reloadToken ?? 0}`}
           ref={iframeRef}
           className="page-node__iframe"
           title={data.title}
-          src={pageUrl(data.ws, id, data.rev ? { v: String(data.rev) } : {})}
+          src={pageUrl(data.ws, id, {
+            ...(data.rev ? { v: String(data.rev) } : {}),
+            ...(data.reloadToken ? { retry: String(data.reloadToken) } : {}),
+          })}
           sandbox="allow-scripts"
           loading="lazy"
           onLoad={() => registerIframe(id, iframeRef.current?.contentWindow ?? null)}

@@ -416,6 +416,24 @@ body {
   cursor: pointer;
 }
 
+/* 非错误提示：无效跳转/外链/自动返回。 */
+.app-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  z-index: 25;
+  max-width: calc(100% - 48px);
+  padding: 7px 14px;
+  overflow-wrap: anywhere;
+  font-size: var(--fs-md);
+  color: var(--card);
+  background: var(--ink);
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: var(--shadow-pop);
+}
+
 /* ---------- React Flow 覆盖 ---------- */
 .react-flow__attribution {
   display: none;
@@ -483,9 +501,28 @@ body {
   background: var(--accent-soft);
 }
 
+.topbar__btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.topbar__btn:disabled:hover {
+  background: transparent;
+}
+
 .topbar__btn.is-on {
   border-color: var(--ink);
   background: var(--paper-2);
+}
+
+/* 窄屏保留图标与 aria-label，避免 5 个工具按钮挤压右侧导出。 */
+@media (max-width: 1180px) {
+  .topbar__btn span {
+    display: none;
+  }
+  .topbar__btn {
+    padding: 5px 7px;
+  }
 }
 
 .topbar__spacer {
@@ -970,6 +1007,14 @@ body {
   stroke: var(--accent);
 }
 
+/* 派生跳转连线：虚线 + 强调色，只读；与手动墨线区分。 */
+.react-flow__edge-path.nav-edge {
+  stroke: var(--accent-ink);
+  stroke-width: 1.6;
+  stroke-dasharray: 7 5;
+  opacity: 0.62;
+}
+
 .react-flow__edge-text {
   font-size: var(--fs-xs);
   fill: var(--ink-soft);
@@ -1061,7 +1106,8 @@ body {
 .app--exporting .node-toolbar-wrap,
 .app--exporting .react-flow__minimap,
 .app--exporting .empty-state,
-.app--exporting .app-error {
+.app--exporting .app-error,
+.app--exporting .app-toast {
   display: none !important;
 }
 
