@@ -28,6 +28,14 @@ jobs:
           git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
           node scripts/check-release-ci.mjs
 
+      # npm 包统一在本机发布；workflow 只校验该版本已经存在于 npm，
+      # 避免「Release 已创建但 npm 上没有这个版本」的发布事故。
+      - name: Verify npm version was published locally
+        run: |
+          version=$(node -p "require('./package.json').version")
+          npm view "dsh-lan-canvas@$version" version >/dev/null \
+            || { echo "::error::npm 上缺少 dsh-lan-canvas@$version：请先在发布机器上完成本机 npm 发布（见 README「开发」），再推送 tag。"; exit 1; }
+
       # 相同 SHA 的 main CI 成功后，重新执行与 CI 一致的完整门禁。
       - name: Install dependencies
         run: npm ci
@@ -118,16 +126,3 @@ jobs:
           npm pack --pack-destination .tmp/release-assets --ignore-scripts
           gh release upload "$GITHUB_REF_NAME" .tmp/release-assets/*.tgz \
             --repo "$GITHUB_REPOSITORY" --clobber
-
-      - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          # 版本已存在时跳过（允许本地先发布/重跑 workflow 不重复打版本）。
-          version=$(node -p "require('./package.json').version")
-          if npm view "dsh-lan-canvas@$version" version >/dev/null 2>&1; then
-            echo "dsh-lan-canvas@$version 已发布，跳过 npm publish"
-            exit 0
-          fi
-          test -n "$NODE_AUTH_TOKEN" || { echo "缺少 NPM_TOKEN，无法发布 npm 包"; exit 1; }
-          npm publish --access public --ignore-scripts

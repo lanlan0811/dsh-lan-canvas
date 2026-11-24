@@ -179,11 +179,11 @@ test('Release 工作流在创建 Release 前复核 main CI 并执行完整门禁
   const workflow = readFileSync(join(resolve(import.meta.dirname, '..'), '.github/workflows/release.yml'), 'utf8')
   assert.match(workflow, /actions: read/)
   const required = [
-    'node scripts/check-release-ci.mjs', 'npm ci', 'npm run typecheck', 'npm run build',
+    'node scripts/check-release-ci.mjs', 'npm view "dsh-lan-canvas@$version" version', 'npm ci', 'npm run typecheck', 'npm run build',
     'npm run notices', 'git status --porcelain -- dist', 'THIRD-PARTY-NOTICES.md',
     'DSH_CANVAS_REQUIRE_BROWSER=1', 'npm test', 'npm run verify:codegen', 'npm run check:bundle',
     'npm run check:pack', 'npm run verify:prototypes', 'test -s', 'gh release create',
-    'gh release upload', 'npm publish --access public',
+    'gh release upload',
   ]
   let previous = -1
   for (const command of required) {
@@ -199,7 +199,10 @@ test('Release 工作流在创建 Release 前复核 main CI 并执行完整门禁
   assert.ok(workflow.includes('.tmp/release-assets/*.tgz'), 'Release 必须上传可安装 tarball 资产')
   assert.equal(workflow.match(/node scripts.check-release-ci.mjs/g)?.length, 2, '发布创建前必须再次复核 CI，不能只检查验收开始时的状态')
   assert.equal(workflow.match(/git fetch --no-tags origin refs.heads.main:refs.remotes.origin.main/g)?.length, 2, '创建 Release 前必须重新确认当前 main 历史')
-  assert.ok(workflow.includes('secrets.NPM_TOKEN'), 'npm 发布必须使用仓库 secrets 的 NPM_TOKEN')
+  // npm 包由本机发布（AGENTS 规则）：workflow 不得再执行 npm publish，只校验版本已存在。
+  assert.doesNotMatch(workflow, /npm publish/, 'release.yml 不得再执行 npm publish（npm 包统一在本机发布）')
+  assert.doesNotMatch(workflow, /secrets\.NPM_TOKEN/, 'release.yml 不应依赖 NPM_TOKEN（npm 包统一在本机发布）')
+  assert.match(workflow, /npm view "dsh-lan-canvas@\$version" version/, '发布前必须校验 npm 版本已在本机发布')
 })
 
 test('main CI requires full original-composition evidence before release eligibility', () => {

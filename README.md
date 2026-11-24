@@ -178,7 +178,7 @@ npm run verify:codegen # 代码生成快照
 npm run verify:prototypes  # 38 个原型真实浏览器评审
 ```
 
-要求：CI 全绿；只在 `main` 分支提交；中文提交信息；发布前更新 `release/release-<版本>.md`。发布 workflow 在 GitHub Release 创建后附带 `.tgz`，并执行 `npm publish`（需要仓库 secrets 的 `NPM_TOKEN`；版本已存在则跳过）。
+要求：CI 全绿；只在 `main` 分支提交；中文提交信息；发布前更新 `release/release-<版本>.md`。**npm 包统一在本机发布**：先执行 `npm publish --access public --ignore-scripts`，再推送 tag；`release.yml` 会校验该版本已存在于 npm，随后创建 GitHub Release 并附带 `.tgz`（不再由 workflow 执行 `npm publish`）。
 
 ## 目录结构
 

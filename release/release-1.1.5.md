@@ -30,8 +30,13 @@
 ## 验收
 
 - 本地门禁全绿后提交并推送 `main`；同一 SHA 的 main CI 成功后打 tag `v1.1.5`。
-- `release.yml` 二次复核 CI，创建 GitHub Release（发布说明即本文件），附可安装资产 `dsh-lan-canvas-1.1.5.tgz`，并发布 npm 包 `dsh-lan-canvas@1.1.5`。
+- npm 包 `dsh-lan-canvas@1.1.5` 由本机 `npm publish --access public --ignore-scripts` 发布（发布后再推 tag）。
+- `release.yml` 二次复核 CI，校验 npm 上已有该版本，创建 GitHub Release（发布说明即本文件），附可安装资产 `dsh-lan-canvas-1.1.5.tgz`。
 - 回归：`/design` 命令、画布主面板、左侧栏「画布」、9 个 `dsh_canvas_*` 工具与 4 条 `/dsh-canvas/*` 路由行为不变。
+
+## 发布流程变更
+
+1.1.5 起 npm 包统一在发布机器上本机发布，`release.yml` 不再执行 `npm publish`，只在创建 Release 前校验该版本已存在于 npm，再上传 tarball 资产。1.1.5 的首次 release run 沿用了旧的 CI 发布步骤并停在 npm 步骤（旧步骤只设了 `NODE_AUTH_TOKEN`、缺少 `.npmrc` 鉴权，必然 ENEEDAUTH）；npm 包已由本机发布，Release 与 tarball 资产完整，后续版本不再走 CI 发布 npm。
 
 ## 升级提示
 
