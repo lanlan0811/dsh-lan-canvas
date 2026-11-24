@@ -3,6 +3,7 @@
  * 替代 React Flow 自带 <Controls>，外观走便签风。
  */
 import { useReactFlow, useViewport } from '@xyflow/react'
+import { FIT_VIEW_PADDING } from './fitView'
 import { FitViewIcon, ZoomInIcon, ZoomOutIcon } from './icons'
 
 export function ZoomControls() {
@@ -24,7 +25,7 @@ export function ZoomControls() {
         className="zoom-controls__btn"
         title="适应视图"
         aria-label="适应视图"
-        onClick={() => void fitView({ padding: 0.3, maxZoom: 1, duration: 400 })}
+        onClick={() => void fitView({ padding: FIT_VIEW_PADDING, maxZoom: 1, duration: 400 })}
       >
         <FitViewIcon size={16} />
       </button>

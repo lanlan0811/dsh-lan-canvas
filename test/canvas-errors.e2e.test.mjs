@@ -107,8 +107,19 @@ test('变更拒绝可见且不自动重试：节点、连线、批注与视口',
     assert.equal(await page.$$eval('.react-flow__edge', elements => elements.length), 0)
     await page.click('.app-error__dismiss')
 
+    // 前面的拖拽/连线步骤可能让 React Flow 处于连接或指针捕获状态；重新加载一次，
+    // 在干净的画布上验证「滚轮平移被拒绝后恢复服务端视口」，避免测试脆弱性。
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await page.waitForSelector('.page-node__header')
+    await new Promise((resolve) => setTimeout(resolve, 900))
     const transform = await page.$eval('.react-flow__viewport', element => element.style.transform)
-    await page.mouse.move(1200, 700)
+    // 通过页面 iframe 内滚轮触发探针转发（这条路径会显式保存视口）；
+    // 空白 pane 上的滚轮只改变本地 transform，不会产生 viewport 写入请求。
+    const nodeFrame = page.frames().find((frame) => frame.url().includes('/page/page-errors'))
+    assert.ok(nodeFrame, '应找到 page-errors iframe')
+    await nodeFrame.waitForFunction(() => window.__tianshu_probe__ === true, { timeout: 10_000 })
+    const iframeBox = await (await page.$('.react-flow__node[data-id=page-errors] .page-node__iframe')).boundingBox()
+    await page.mouse.move(iframeBox.x + iframeBox.width / 2, iframeBox.y + iframeBox.height / 2)
     await page.mouse.wheel({ deltaY: 80 })
     await expectAlert('验收拒绝 viewport')
     await page.waitForFunction(value => document.querySelector('.react-flow__viewport')?.style.transform !== value, {}, transform)

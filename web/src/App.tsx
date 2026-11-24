@@ -49,6 +49,7 @@ import {
   type ApiSelection,
 } from './api'
 import { EmptyState } from './EmptyState'
+import { FIT_VIEW_PADDING } from './fitView'
 import { PreviewOverlay } from './PreviewOverlay'
 import { resolveNavTarget } from './navTarget'
 import type { PreviewDevice } from './previewDevices'
@@ -486,7 +487,7 @@ function Canvas() {
       )
       // 等 React Flow 接收新坐标后再 fit，避免用旧节点尺寸计算视口。
       await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
-      await fitView({ padding: 0.2, maxZoom: 1, duration: 400 })
+      await fitView({ padding: FIT_VIEW_PADDING, maxZoom: 1, duration: 400 })
     } catch (err) {
       setMutationError(err instanceof ApiRequestError ? err.message : '自动排布失败，请检查画布服务后重试。')
       await loadProject()
@@ -581,7 +582,7 @@ function Canvas() {
           onMove={onMove}
           defaultViewport={initialViewport ?? undefined}
           fitView={initialViewport === null}
-          fitViewOptions={{ padding: 0.3, maxZoom: 1 }}
+          fitViewOptions={{ padding: FIT_VIEW_PADDING, maxZoom: 1 }}
         >
           <MiniMap
             pannable
@@ -650,7 +651,7 @@ function Canvas() {
             onClose={() => setMenu(null)}
             onPreview={openPreview}
             onPreviewDevice={openPreviewDevice}
-            onFitView={() => void fitView({ padding: 0.3, maxZoom: 1, duration: 400 })}
+            onFitView={() => void fitView({ padding: FIT_VIEW_PADDING, maxZoom: 1, duration: 400 })}
           />
         )}
         {!exporting && preview && (

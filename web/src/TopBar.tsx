@@ -7,6 +7,7 @@ import { useReactFlow, useViewport } from '@xyflow/react'
 import { ChevronIcon, DownloadIcon, FitViewIcon, LayoutIcon, PlayIcon, SidebarIcon } from './icons'
 import brandIcon from './brand-icon.png'
 import { StyleSwitcher } from './StyleSwitcher'
+import { FIT_VIEW_PADDING } from './fitView'
 import type { ApiDesignCatalog } from './api'
 
 export interface TopBarProps {
@@ -91,7 +92,7 @@ export function TopBar({
           className="topbar__btn"
           title="适应视图"
           aria-label="适应视图"
-          onClick={() => void fitView({ padding: 0.3, maxZoom: 1, duration: 400 })}
+          onClick={() => void fitView({ padding: FIT_VIEW_PADDING, maxZoom: 1, duration: 400 })}
         >
           <FitViewIcon size={15} />
           <span>适应</span>
