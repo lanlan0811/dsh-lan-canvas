@@ -156,11 +156,16 @@ export function apply(ctx: PluginContext, config: unknown): void {
       }
       track(registerSkill(ctx))
       track(watchDesignSessions(ctx))
-      track(registerRoutes({
-        ctx,
-        port: resolved.port,
-        openBrowser: resolved.openBrowser,
-        openExternal: openExternal,
+      // webServer 可能比本插件晚就绪；直接读取会静默跳过四条路由（画布 iframe 空白、
+      // /design 404）。用 ctx.inject 等它就绪后再注册，工具/技能仍可立即使用。
+      track(ctx.inject(['webServer'], (scope) => {
+        track(registerRoutes({
+          ctx: scope,
+          port: resolved.port,
+          openBrowser: resolved.openBrowser,
+          openExternal: openExternal,
+        }))
+        return () => {}
       }))
     } catch (error) {
       // 注册失败必须让激活失败可见（Plugins 页），但先把已注册资源退干净。

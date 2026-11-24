@@ -120,6 +120,14 @@ export function createHarness(options = {}) {
     return disposer ?? (() => {})
   }
 
+  const webServer = {
+    getOrigin: () => 'http://127.0.0.1:3080',
+    register(route) {
+      routes.set(route.path, route)
+      return track(() => { routes.delete(route.path) })
+    },
+  }
+
   const services = {
     tools: {
       register(definition) {
@@ -135,13 +143,6 @@ export function createHarness(options = {}) {
           const index = skills.indexOf(skill)
           if (index >= 0) skills.splice(index, 1)
         })
-      },
-    },
-    webServer: {
-      getOrigin: () => 'http://127.0.0.1:3080',
-      register(route) {
-        routes.set(route.path, route)
-        return track(() => { routes.delete(route.path) })
       },
     },
     connection: options.connection ?? {
@@ -163,6 +164,9 @@ export function createHarness(options = {}) {
       },
     },
   }
+
+  if (!options.deferWebServer) services.webServer = webServer
+  const pendingInjections = []
 
   const ctx = {
     logger: {
@@ -186,8 +190,16 @@ export function createHarness(options = {}) {
       })
     },
     inject(deps, callback) {
-      if (deps.every((dep) => services[dep] !== undefined)) callback(ctx)
-      return () => {}
+      if (deps.every((dep) => services[dep] !== undefined)) {
+        callback(ctx)
+        return () => {}
+      }
+      const pending = { deps, callback }
+      pendingInjections.push(pending)
+      return () => {
+        const index = pendingInjections.indexOf(pending)
+        if (index >= 0) pendingInjections.splice(index, 1)
+      }
     },
     tools: services.tools,
     workingDirectory: services.workingDirectory,
@@ -270,6 +282,20 @@ export function createHarness(options = {}) {
     return response
   }
 
+  /** 后置提供 Host 服务，并唤醒等待该依赖的 ctx.inject 回调。 */
+  function provideService(name, value) {
+    services[name] = value
+    for (let index = 0; index < pendingInjections.length;) {
+      const pending = pendingInjections[index]
+      if (pending.deps.every((dep) => services[dep] !== undefined)) {
+        pendingInjections.splice(index, 1)
+        pending.callback(ctx)
+      } else {
+        index += 1
+      }
+    }
+  }
+
   return {
     ctx,
     services,
@@ -278,6 +304,8 @@ export function createHarness(options = {}) {
     skills,
     routes,
     warnings,
+    webServer,
+    provideService,
     api,
     tools: wrappedTools,
     materialize,

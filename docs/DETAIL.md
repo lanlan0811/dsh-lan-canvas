@@ -47,7 +47,7 @@ PNG/ZIP 导出与生产代码生成。
   画布 URL 的 `#secret` 只经 fragment 交付，页面保存到 `sessionStorage` 并用
   `Authorization: Bearer` 访问 API；页面 iframe 的 GET `/page/*` 支持 `secret`
   查询参数（仅此路径），响应带 `Referrer-Policy: no-referrer`。
-- DSH 侧 4 条路由（`/dsh-canvas/*`）全部经 `ctx.connection` 的 Host/Origin 检查与浏览器认证。
+- DSH 侧 4 条路由（`/dsh-canvas/*`）通过 `ctx.inject(['webServer'])` 等服务就绪后注册，全部经 `ctx.connection` 的 Host/Origin 检查与浏览器认证；工具/技能不依赖 webServer，先注册。
 - 所有文件读写经 `src/paths.ts` 的边界校验：工作区内路径拒绝越界、符号链接与目录联接。
 - 工具错误经 `reportError` 脱敏，不泄露绝对路径与 URL 凭证；插件运行期不依赖任何 `@deepseek-ai/*` 包。
 

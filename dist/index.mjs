@@ -71078,11 +71078,15 @@ function apply(ctx, config2) {
       }
       track(registerSkill(ctx));
       track(watchDesignSessions(ctx));
-      track(registerRoutes({
-        ctx,
-        port: resolved.port,
-        openBrowser: resolved.openBrowser,
-        openExternal
+      track(ctx.inject(["webServer"], (scope) => {
+        track(registerRoutes({
+          ctx: scope,
+          port: resolved.port,
+          openBrowser: resolved.openBrowser,
+          openExternal
+        }));
+        return () => {
+        };
       }));
     } catch (error) {
       for (const dispose of disposers.reverse()) {
