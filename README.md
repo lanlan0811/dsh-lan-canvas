@@ -2,7 +2,7 @@
 
 **项目名：dsh-lan-canvas** ｜ **npm 包名：`dsh-lan-canvas`**
 
-这是一个把「无限画布 + 前端原型 + 设计风格 + 审计」搬进 DeepSeek Harness 主面板的 bundle：代理用 9 个 `dsh_canvas_*` 工具往画布上写页面，人在画布里浏览、批注、预览、导出，用 `/design` 锁定一套设计风格后再让代理生成。
+这是一个把「无限画布 + 前端原型 + 设计风格 + 审计」搬进 DeepSeek Harness 主面板的 bundle：代理用 9 个 `dsh_canvas_*` 工具往画布上写页面，人在画布里浏览、批注、预览、导出，用输入区「设计」入口（或 `/design`）选一套设计系统后再让代理生成。
 
 > 命名说明：项目/仓库/npm 包名统一使用 **dsh-lan-canvas**（npm 为 `dsh-lan-canvas`）。客户端 bundle 的**模块工厂 id** 必须等于 npm 包名（`dsh-lan-canvas`）；面板/槽位 key（`dsh-canvas`）、`/dsh-canvas/*` 路由、`dsh_canvas_*` 工具名、`dsh-canvas` 技能名与 `.dsh-canvas/` 数据目录是**内部稳定标识**，不随包名变化。
 
@@ -14,7 +14,7 @@
 - 本项目：保留同一套设计域（画布/页面/风格/设计系统/审计/导出），把**宿主从 Tianshu TPI 换成 DeepSeek Harness（DSH）bundle**。
 - 移植后的形态：
   - Host 侧 9 个 `dsh_canvas_*` 工具 + 一个 `dsh-canvas` 技能；
-  - Client 侧主面板 iframe 画布、左侧栏「画布」入口、设计模式状态 chip、画布悬浮球；
+  - Client 侧主面板 iframe 画布、左侧栏「画布」入口、输入框常驻「设计」入口与状态 chip、画布悬浮球；
   - `/design` 设计模式流水线（选风格 → 锁定工作区 → 发需求 → 自动打开画布）；
   - 删除 TPI 运行时与旧入口，不再依赖 Tianshu 的插件 API。
 - **数据不迁移**：只读写当前工作区的 `.dsh-canvas/`，不读取旧版 Tianshu 数据目录。
@@ -25,7 +25,7 @@
 - **无限画布**：React Flow 平移/缩放、页面节点、设备尺寸（desktop/tablet/mobile/free）、页面间连线。
 - **原型渲染**：每个节点内嵌 `sandbox` iframe 渲染 HTML 原型；支持元素选中、批注图钉、预览覆盖层。
 - **9 个 Host 工具**：打开/写入/读取/编排/风格/检查/设计系统/审计/批注，全部经 DSH 工具系统调用。
-- **`/design` 设计模式**：输入框 chip 或命令选择风格（内置 + 工作区自定义）；风格锁定后代理生成的内容自动套用 token 与组件样式。
+- **设计模式**：输入框左侧常驻「设计」入口或 `/design` 命令选择设计系统（内置 + 工作区自定义），选中即进入设计模式；风格锁定后代理生成的内容自动套用 token 与组件样式。
 - **设计系统**：内置风格、从 HTML/CSS/URL 反抽取、从 shadcn/AntD 主题导入、导出/导入品牌包。
 - **审计**：设计契约、可访问性、视觉回归、设计漂移、多尺寸截图评审。
 - **导出与代码生成**：PNG/ZIP 导出，React/CSS/Tailwind/shadcn/AntD 及 iOS/Android/小程序规格导出。
@@ -130,11 +130,11 @@ bundle 列表，不动工作区 `.dsh-canvas/` 数据。详见 [docs/INSTALL.md]
 
 工具名是 API 稳定标识，不随 npm 包名变化；参数/返回结构以 Host 注册的 schema 为准。所有路径参数受工作区边界约束。
 
-## `/design` 设计模式
+## 设计模式
 
-1. 输入 `/design` 回车（设计模式开启后，输入框左侧才会出现「设计 · 风格名」chip）；
-2. 选「自由探索」或一套风格（内置或工作区自定义）；
-3. 风格锁定到 `.dsh-canvas/project.json`，chip 显示「设计 · 风格名」；
+1. 点输入框左侧常驻的「设计」chip（点开即选设计系统），或输入 `/design` 回车；
+2. 选「自由探索」或一套风格（内置或工作区自定义）；**选中即进入设计模式**，不会切走对话；
+3. 风格锁定到 `.dsh-canvas/project.json`，chip 变成「设计 · 风格名」；
 4. 发送需求，画布面板自动打开，代理生成的页面自动套用该风格；
 5. 画布左下角悬浮球显示代理运行态/待处理，点击回对话；
 6. 退出：chip 菜单「退出设计模式」，或画布工具条「退出设计模式」。

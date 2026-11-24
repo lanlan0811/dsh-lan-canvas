@@ -3,17 +3,19 @@ import * as React from 'react'
 
 /** 插件自有样式；随组件挂载，卸载即移除。 */
 export const CSS = `
-.dshc-wrap{position:relative;display:inline-flex}
+.dshc-wrap{position:relative;display:inline-flex;flex:none}
 .dshc-chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 8px;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);font-size:12px;line-height:1;cursor:pointer;white-space:nowrap}
 .dshc-chip:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
 .dshc-chip:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
 .dshc-chip[data-active="true"]{color:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}
-.dshc-menu{position:absolute;bottom:calc(100% + 6px);left:0;z-index:40;width:290px;max-height:340px;overflow:auto;padding:6px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-overlay);color:var(--dsw-alias-label-primary);box-shadow:0 10px 28px rgba(0,0,0,.22);font-size:12px}
+.dshc-menu{position:absolute;bottom:calc(100% + 6px);left:0;z-index:40;width:290px;max-height:min(340px, 60vh);overflow:auto;padding:6px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-overlay);color:var(--dsw-alias-label-primary);box-shadow:0 10px 28px rgba(0,0,0,.22);font-size:12px}
 .dshc-menu__title{padding:6px 8px;font-size:11px;color:var(--dsw-alias-label-secondary)}
 .dshc-item{display:flex;align-items:flex-start;gap:8px;width:100%;padding:7px 8px;border:0;border-radius:8px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .dshc-item:hover{background:var(--dsw-alias-bg-layer-2)}
 .dshc-item[aria-checked="true"]{background:var(--dsw-alias-bg-layer-2)}
 .dshc-item:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:-2px}
+.dshc-item:disabled{opacity:.55;cursor:default}
+.dshc-item:disabled:hover{background:transparent}
 .dshc-item__body{display:flex;flex-direction:column;gap:2px;min-width:0}
 .dshc-item__name{font-weight:500}
 .dshc-item__hint{color:var(--dsw-alias-label-secondary);font-size:11px}

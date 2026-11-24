@@ -1,10 +1,11 @@
 /**
- * 输入框左侧的「设计」chip。
+ * 输入框左侧的「设计」chip：设计模式入口与状态入口。
  *
- * - 默认不显示：设计模式的入口是 `/design` 命令（或画布工具）；
- * - 通过 `/design` 选中风格/自由探索后，chip 才出现，显示「设计 · 风格名」；
- * - 点开可切换风格或退出；自动开画布：设计模式期间轮询 Host 状态，
- *   收到 openRequested 后切到画布面板。
+ * - 常驻显示：未进入设计模式时是「设计」入口，点开选择设计系统（或自由探索），
+ *   选中即直接进入设计模式（Issue #4）；
+ * - `/design` 命令仍然是等价入口，二者共用同一套 Host 状态；
+ * - 已进入时 chip 显示「设计 · 风格名」，菜单可切换风格或退出；
+ * - 自动开画布：设计模式期间轮询 Host 状态，收到 openRequested 后切到画布面板。
  */
 import * as React from 'react'
 import {
@@ -36,7 +37,9 @@ export function ComposerChip({ ctx, t, sessionId, useSessions, usePanelInfo }: P
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [busy, setBusy] = React.useState(false)
+  const menuId = React.useId()
   const wrap = React.useRef<HTMLDivElement | null>(null)
+  const chip = React.useRef<HTMLButtonElement | null>(null)
 
   // 挂载/会话切换时与 Host 同步（刷新页面后恢复设计模式）。
   React.useEffect(() => {
@@ -92,14 +95,16 @@ export function ComposerChip({ ctx, t, sessionId, useSessions, usePanelInfo }: P
     }
   }, [id, cwd, active, activePanelId, ctx])
 
-  // 点击外部 / Escape 关闭菜单。
+  // 点击外部 / Escape 关闭菜单；Escape 把焦点还给 chip。
   React.useEffect(() => {
     if (!menuOpen) return
     const onPointer = (event: PointerEvent): void => {
       if (wrap.current && !wrap.current.contains(event.target as Node)) setMenuOpen(false)
     }
     const onKey = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') setMenuOpen(false)
+      if (event.key !== 'Escape') return
+      setMenuOpen(false)
+      chip.current?.focus()
     }
     document.addEventListener('pointerdown', onPointer, true)
     document.addEventListener('keydown', onKey, true)
@@ -115,7 +120,7 @@ export function ComposerChip({ ctx, t, sessionId, useSessions, usePanelInfo }: P
     setError(null)
     if (!next) return
     setLoading(true)
-    void fetchStyles({ sessionId: id })
+    void fetchStyles({ sessionId: id, cwd })
       .then((response) => {
         // 'free' 由菜单里的「自由探索」固定行表达；目录里即使出现也不重复。
         setStyles(response.styles.filter((style) => style.id !== 'free'))
@@ -128,7 +133,7 @@ export function ComposerChip({ ctx, t, sessionId, useSessions, usePanelInfo }: P
       })
   }
 
-  const applyStyle = (styleId: string, styleName: string | null): void => {
+  const applyStyle = (styleId: string): void => {
     if (busy) return
     setBusy(true)
     setError(null)
@@ -142,7 +147,6 @@ export function ComposerChip({ ctx, t, sessionId, useSessions, usePanelInfo }: P
         setBusy(false)
         setError(err instanceof Error ? err.message : String(err))
       })
-    void styleName
   }
 
   const exitDesign = (): void => {
@@ -160,58 +164,73 @@ export function ComposerChip({ ctx, t, sessionId, useSessions, usePanelInfo }: P
       })
   }
 
-  const label = `${t('panel.designActive')}${view?.styleName ?? t('design.free')}`
+  // 风格名兜底：Host 返回 styleName 为空时用 id，仍为空才是自由探索。
+  const styleLabel = view?.styleName ?? view?.styleId ?? t('design.free')
+  const label = active ? `${t('panel.designActive')}${styleLabel}` : t('panel.designChip')
+  const title = active ? label : t('design.entryHint')
 
-  // 产品约定：chip 是「已进入设计模式」的状态/退出入口，不是入口本身；
-  // 未开启时完全不占输入框左侧空间，避免常驻按钮误导用户。
-  if (!active) return null
+  // 没有会话 id 时无法落 Host 状态，不渲染入口（DSH composer 槽位为 session 作用域）。
+  if (!id) return null
 
   return React.createElement(React.Fragment, null,
     React.createElement(Styles),
     React.createElement('div', { className: 'dshc-wrap', ref: wrap },
       React.createElement('button', {
         type: 'button',
+        ref: chip,
         className: 'dshc-chip',
-        'data-active': 'true',
+        'data-active': active ? 'true' : undefined,
         'aria-haspopup': 'menu',
         'aria-expanded': menuOpen,
-        title: label,
+        'aria-controls': menuOpen ? menuId : undefined,
+        title,
         onClick: openMenu,
       },
       React.createElement(DesignIcon, { size: 14 }),
       React.createElement('span', null, label)),
-      menuOpen && React.createElement('div', { className: 'dshc-menu', role: 'menu' },
-        React.createElement('div', { className: 'dshc-menu__title' }, t('design.menuTitle')),
+      menuOpen && React.createElement('div', {
+        className: 'dshc-menu',
+        id: menuId,
+        role: 'menu',
+        'aria-label': active ? t('design.menuTitle') : t('design.pickTitle'),
+      },
+      React.createElement('div', { className: 'dshc-menu__title' },
+        active ? t('design.menuTitle') : t('design.pickTitle')),
+      !active && React.createElement('div', { className: 'dshc-note' }, t('design.pickHint')),
+      React.createElement('button', {
+        type: 'button', role: 'menuitemradio', className: 'dshc-item',
+        'aria-checked': active && view?.styleId === null,
+        disabled: busy,
+        onClick: () => applyStyle('free'),
+      },
+      React.createElement('span', { className: 'dshc-item__body' },
+        React.createElement('span', { className: 'dshc-item__name' }, t('design.free')),
+        React.createElement('span', { className: 'dshc-item__hint' }, t('design.freeHint')))),
+      loading && React.createElement('div', { className: 'dshc-note' }, t('design.loading')),
+      (styles ?? []).map((style) => React.createElement('button', {
+        key: style.id,
+        type: 'button', role: 'menuitemradio', className: 'dshc-item',
+        'aria-checked': active && view?.styleId === style.id,
+        disabled: busy,
+        onClick: () => applyStyle(style.id),
+      },
+      React.createElement('span', { className: 'dshc-item__body' },
+        React.createElement('span', { className: 'dshc-item__name' }, style.name),
+        React.createElement('span', { className: 'dshc-item__hint' }, style.tagline),
+        React.createElement('span', { className: 'dshc-swatches' },
+          style.swatches.slice(0, 5).map((color, index) => React.createElement('span', {
+            key: `${style.id}-${index}`,
+            className: 'dshc-swatch',
+            style: { background: color },
+          })))))),
+      error !== null && React.createElement('div', { className: 'dshc-note' }, error),
+      active && React.createElement(React.Fragment, null,
+        React.createElement('div', { className: 'dshc-sep' }),
         React.createElement('button', {
-          type: 'button', role: 'menuitemradio', className: 'dshc-item',
-          'aria-checked': active && view?.styleId === null,
-          onClick: () => applyStyle('free', null),
-        },
-        React.createElement('span', { className: 'dshc-item__body' },
-          React.createElement('span', { className: 'dshc-item__name' }, t('design.free')),
-          React.createElement('span', { className: 'dshc-item__hint' }, t('design.freeHint')))),
-        loading && React.createElement('div', { className: 'dshc-note' }, t('design.loading')),
-        (styles ?? []).map((style) => React.createElement('button', {
-          key: style.id,
-          type: 'button', role: 'menuitemradio', className: 'dshc-item',
-          'aria-checked': active && view?.styleId === style.id,
-          onClick: () => applyStyle(style.id, style.name),
-        },
-        React.createElement('span', { className: 'dshc-item__body' },
-          React.createElement('span', { className: 'dshc-item__name' }, style.name),
-          React.createElement('span', { className: 'dshc-item__hint' }, style.tagline),
-          React.createElement('span', { className: 'dshc-swatches' },
-            style.swatches.slice(0, 5).map((color, index) => React.createElement('span', {
-              key: `${style.id}-${index}`,
-              className: 'dshc-swatch',
-              style: { background: color },
-            })))))),
-        error !== null && React.createElement('div', { className: 'dshc-note' }, error),
-        active && React.createElement(React.Fragment, null,
-          React.createElement('div', { className: 'dshc-sep' }),
-          React.createElement('button', {
-            type: 'button', role: 'menuitem', className: 'dshc-item', onClick: exitDesign,
-          }, React.createElement('span', { className: 'dshc-item__name' }, t('design.exit')))))))
+          type: 'button', role: 'menuitem', className: 'dshc-item',
+          disabled: busy,
+          onClick: exitDesign,
+        }, React.createElement('span', { className: 'dshc-item__name' }, t('design.exit')))))))
 }
 
 /** 订阅浏览器内的设计状态镜像。 */

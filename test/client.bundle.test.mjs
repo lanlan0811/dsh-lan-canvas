@@ -112,16 +112,38 @@ test('/design 选中风格只进入设计模式，不提前切换到画布面板
   assert.deepEqual(warnings, [])
 })
 
-test('设计 chip 默认不渲染，/design 选中风格后才出现', async () => {
+test('设计 chip 常驻输入区：未进入设计模式时是入口，不显示激活态', async () => {
+  const { registrations, warnings } = mount()
+  const chip = registrations.find((entry) => entry.id === 'dsh-canvas-design')
+  assert.ok(chip, '必须注册 conversation.input.left 的设计 chip')
+  const props = {
+    sessionId: 's-idle',
+    useSessions: (selector) => selector({ byId: { 's-idle': { cwd: '/tmp/dsh-canvas-chip' } } }),
+    usePanelInfo: (selector) => selector({ activePanelId: null }),
+  }
+  const html = renderToStaticMarkup(chip.render(props))
+  // 去掉插件样式表：CSS 里也有 [data-active="true"]，先剥离才能断言「chip 自身」的状态。
+  const markup = html.replace(/<style[\s\S]*?<\/style>/g, '')
+  assert.match(markup, /dshc-chip/, '未进入设计模式时也必须渲染「设计」入口')
+  assert.match(markup, /panel\.designChip/, '入口态显示「设计」')
+  assert.match(markup, /aria-haspopup="menu"/)
+  assert.match(markup, /aria-expanded="false"/)
+  assert.doesNotMatch(markup, /data-active="true"/, '未进入设计模式时不得显示激活态')
+  assert.doesNotMatch(markup, /panel\.designActive/, '未进入设计模式时不得显示「设计 · 风格名」')
+
+  assert.equal(renderToStaticMarkup(chip.render({ ...props, sessionId: undefined })), '', '没有 sessionId 时不渲染入口')
+  assert.deepEqual(warnings, [])
+})
+
+test('/design 选中风格后 chip 显示「设计 · 风格名」', async () => {
   const { registrations, contributions, warnings } = mount()
   const chip = registrations.find((entry) => entry.id === 'dsh-canvas-design')
   assert.ok(chip, '必须注册 conversation.input.left 的设计 chip')
   const props = {
-    sessionId: 's1',
-    useSessions: (selector) => selector({ byId: { s1: { cwd: '/tmp/dsh-canvas-chip' } } }),
+    sessionId: 's-active',
+    useSessions: (selector) => selector({ byId: { 's-active': { cwd: '/tmp/dsh-canvas-chip' } } }),
     usePanelInfo: (selector) => selector({ activePanelId: null }),
   }
-  assert.equal(renderToStaticMarkup(chip.render(props)), '', '未进入设计模式时 chip 不得占用输入框左侧')
 
   const originalFetch = globalThis.fetch
   globalThis.fetch = async (url) => ({
@@ -134,12 +156,15 @@ test('设计 chip 默认不渲染，/design 选中风格后才出现', async () 
     async text() { return '' },
   })
   try {
-    await contributions[0].ui.onSelect({ id: 'apple', label: 'Apple' }, { sessionId: 's1' })
+    await contributions[0].ui.onSelect({ id: 'apple', label: 'Apple' }, { sessionId: 's-active' })
   } finally {
     globalThis.fetch = originalFetch
   }
   const html = renderToStaticMarkup(chip.render(props))
-  assert.match(html, /dshc-chip/, '选中风格后 chip 应出现')
-  assert.match(html, /panel\.designActive/, 'chip 应显示设计模式状态')
+  const markup = html.replace(/<style[\s\S]*?<\/style>/g, '')
+  assert.match(markup, /dshc-chip/, '选中风格后 chip 保持显示')
+  assert.match(markup, /panel\.designActive/, 'chip 应显示设计模式状态')
+  assert.match(markup, /Apple/, 'chip 应显示锁定的风格名')
+  assert.match(markup, /data-active="true"/, '进入设计模式后 chip 进入激活态')
   assert.deepEqual(warnings, [])
 })
