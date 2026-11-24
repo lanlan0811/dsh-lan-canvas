@@ -7,15 +7,23 @@
  * 不打包第二份 React，也不 require 任何宿主 Client 包。
  */
 import { build } from 'esbuild'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const outfile = resolve(root, 'dist/client.js')
+const pkg = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'))
+if (typeof pkg.name !== 'string' || pkg.name.trim() === '') {
+  throw new Error('build-client: package.json 缺少 name')
+}
 
-/** 惰性工厂包装：banner 定义模块表，footer 返回插件对象。 */
-const banner = `window.__ModuleLoader__.load({id:'dsh-canvas',factory(require){var module={exports:{}};var exports=module.exports;`
+/**
+ * 工厂 id 必须等于 **npm 包名**：DSH 客户端模块表以 `WebBootEntry.id == package name`
+ * 作为 key，加载脚本后校验 `__ModuleLoader__.load({ id })` 注册了同名工厂。
+ * 1.1.0 改名后这里仍硬编码 `dsh-canvas`，导致客户端三个槽位与 /design 全部不加载。
+ */
+const banner = `window.__ModuleLoader__.load({id:${JSON.stringify(pkg.name)},factory(require){var module={exports:{}};var exports=module.exports;`
 const footer = `return module.exports;}});`
 
 export async function buildClient() {

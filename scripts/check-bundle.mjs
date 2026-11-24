@@ -136,7 +136,9 @@ const clientPath = join(root, 'dist/client.js')
 if (existsSync(clientPath)) {
   const text = readFileSync(clientPath, 'utf8')
   if (!text.includes('__ModuleLoader__.load')) fail('dist/client.js 必须通过 window.__ModuleLoader__.load 注册')
-  if (!/id:\s*['"]dsh-canvas['"]/.test(text)) fail("dist/client.js 的工厂 id 必须是 'dsh-canvas'")
+  if (!new RegExp(`id:\\s*['"]${String(pkg?.name).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]`).test(text)) {
+    fail(`dist/client.js 的工厂 id 必须等于 npm 包名（${String(pkg?.name)}）；DSH 客户端模块表以包名为 key`)
+  }
   try {
     execFileSync(process.execPath, ['--check', clientPath], { stdio: 'pipe' })
   } catch (error) {

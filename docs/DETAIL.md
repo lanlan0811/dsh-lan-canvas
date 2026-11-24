@@ -5,7 +5,7 @@
 PNG/ZIP 导出与生产代码生成。
 
 由 **Tianshu-Canvas**（`tianshu-canvas@0.9.5`，天枢 TPI 插件）移植为 DSH bundle。
-项目/npm 包名是 `dsh-lan-canvas`（npm 同名）；客户端 bundle id、
+项目/npm 包名是 `dsh-lan-canvas`（npm 同名）；客户端 bundle 的模块工厂 id 必须等于 npm 包名；面板/槽位 key、
 面板 key、`/dsh-canvas/*` 路由、`dsh_canvas_*` 工具与 `dsh-canvas` 技能名是内部稳定标识。
 
 ## 安装后你会看到

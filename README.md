@@ -4,7 +4,7 @@
 
 这是一个把「无限画布 + 前端原型 + 设计风格 + 审计」搬进 DeepSeek Harness 主面板的 bundle：代理用 9 个 `dsh_canvas_*` 工具往画布上写页面，人在画布里浏览、批注、预览、导出，用 `/design` 锁定一套设计风格后再让代理生成。
 
-> 命名说明：项目/仓库/npm 包名统一使用 **dsh-lan-canvas**（npm 为 `dsh-lan-canvas`）。客户端 bundle id、面板 key、`/dsh-canvas/*` 路由、`dsh_canvas_*` 工具名、`dsh-canvas` 技能名与 `.dsh-canvas/` 数据目录是**内部稳定标识**，沿用旧名以便升级；它们不是项目名，也不是 npm 包名。
+> 命名说明：项目/仓库/npm 包名统一使用 **dsh-lan-canvas**（npm 为 `dsh-lan-canvas`）。客户端 bundle 的**模块工厂 id** 必须等于 npm 包名（`dsh-lan-canvas`）；面板/槽位 key（`dsh-canvas`）、`/dsh-canvas/*` 路由、`dsh_canvas_*` 工具名、`dsh-canvas` 技能名与 `.dsh-canvas/` 数据目录是**内部稳定标识**，不随包名变化。
 
 ## 与 Tianshu-Canvas 的关系
 

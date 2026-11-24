@@ -9,6 +9,7 @@ import test from 'node:test'
 import { renderToStaticMarkup } from 'react-dom/server'
 
 const root = resolve(import.meta.dirname, '..')
+const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const React = (await import('react')).default
 
 function loadClient() {
@@ -19,7 +20,7 @@ function loadClient() {
   window.__ModuleLoader__ = { load(spec) { id = spec.id; factory = spec.factory } }
   // eslint-disable-next-line no-new-func
   new Function('window', source)(window)
-  assert.equal(id, 'dsh-canvas', '工厂 id 保持内部标识 dsh-canvas（与 npm 包名解耦）')
+  assert.equal(id, pkg.name, '工厂 id 必须等于 npm 包名（DSH 客户端模块表以包名为 key）')
   const plugin = factory((name) => {
     if (name === 'react') return React
     throw new Error(`客户端只允许 require('react')，实际 require(${name})`)
