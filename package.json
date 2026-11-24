@@ -1,6 +1,6 @@
 {
   "name": "dsh-lan-canvas",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "dsh-lan-canvas：由 Tianshu-Canvas 移植的 DSH 无限画布设计工作台（9 个 dsh_canvas_* 工具、dsh-canvas 技能、主面板画布与 /design 设计模式）",
   "license": "Apache-2.0",
   "type": "module",
