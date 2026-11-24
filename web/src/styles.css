@@ -722,6 +722,56 @@ body {
   gap: 6px;
 }
 
+/* 「复制修改请求」失败时的兜底：展示完整请求文本，用户可手动复制。
+   跨源 iframe 的异步剪贴板可能被 Permissions Policy 拦截，execCommand
+   也可能被桌面壳/系统权限拒绝，因此必须给出可操作的文本出口。 */
+.selection-panel__copy-fallback {
+  margin-top: 8px;
+  padding: 8px;
+  background: var(--danger-soft);
+  border: 1.5px dashed var(--danger);
+  border-radius: var(--r-sketch-sm);
+}
+
+.selection-panel__copy-hint {
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--danger);
+}
+
+.selection-panel__copy-text {
+  width: 100%;
+  min-height: 96px;
+  margin-top: 6px;
+  padding: 6px 7px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-sketch-sm);
+  outline: none;
+  resize: vertical;
+}
+
+.selection-panel__copy-text:focus {
+  border-color: var(--danger);
+}
+
+/* 屏幕阅读器播报复制结果；不占布局。 */
+.selection-panel__status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* 收起后的浮动小标签，点击重新展开 */
 .selection-panel__tab {
   position: absolute;

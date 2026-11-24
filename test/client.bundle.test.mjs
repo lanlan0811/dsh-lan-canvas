@@ -135,6 +135,24 @@ test('设计 chip 常驻输入区：未进入设计模式时是入口，不显�
   assert.deepEqual(warnings, [])
 })
 
+test('主面板画布 iframe 委派 clipboard-write（Issue #6）', () => {
+  const { registrations, warnings } = mount()
+  const panel = registrations.find((entry) => entry.name === 'main')
+  assert.ok(panel, '必须注册 main 主面板')
+  const html = renderToStaticMarkup(panel.render({
+    ctx: { logger: { debug() {}, warn() {} }, layout: { selectPanel() {} } },
+    t: (key) => key,
+    useSessions: (selector) => selector({
+      byId: { 's-canvas': { id: 's-canvas', cwd: '/tmp/dsh-canvas-panel', retainedBy: { mainView: 1 } } },
+    }),
+  }))
+  assert.equal((html.match(/<iframe/g) ?? []).length, 1, '主面板应只有一个画布 iframe')
+  assert.match(html, /<iframe[^>]*\ballow="clipboard-write"/,
+    '画布 iframe 必须委派 clipboard-write，否则跨源异步剪贴板会被 Permissions Policy 拦截')
+  assert.doesNotMatch(html, /allow="[^"]*clipboard-read/, '不应申请剪贴板读取权限')
+  assert.deepEqual(warnings, [])
+})
+
 test('/design 选中风格后 chip 显示「设计 · 风格名」', async () => {
   const { registrations, contributions, warnings } = mount()
   const chip = registrations.find((entry) => entry.id === 'dsh-canvas-design')

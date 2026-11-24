@@ -126,12 +126,16 @@ export function CanvasPanel({ ctx, t, useSessions, useSessionStatus }: Props): R
             type: 'button', className: 'dshc-btn', onClick: exitDesign, disabled: exiting,
           }, t('panel.exitDesign')))),
       React.createElement('div', { className: 'dshc-body' },
+        // 画布与 DSH 页面跨源（画布服务独立端口）。Chromium 的 clipboard-write
+        // Permissions Policy 默认只给同源文档；不委派时选中面板的「复制修改请求」
+        // 调用 navigator.clipboard 会抛 NotAllowedError。只委派写入，不申请读取。
         React.createElement('iframe', {
           key: src,
           ref: frameRef,
           className: 'dshc-frame',
           title: t('panel.title'),
           src,
+          allow: 'clipboard-write',
           onLoad: () => { setLoaded(true); setSlow(false) },
         }),
         !loaded && !slow && React.createElement('div', { className: 'dshc-overlay' }, t('panel.loading')),
